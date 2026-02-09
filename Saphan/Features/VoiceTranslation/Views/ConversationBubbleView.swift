@@ -5,9 +5,14 @@ import SaphanCore
 struct ConversationBubbleView: View {
     let item: ConversationItem
     @Environment(\.colorScheme) private var colorScheme
+    private static let bubbleTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter
+    }()
 
-    private var palette: VoiceTranslationTheme.Palette {
-        VoiceTranslationTheme.palette(for: colorScheme)
+    private var palette: SaphanTheme.Palette {
+        SaphanTheme.palette(for: colorScheme)
     }
 
     private var isUser: Bool {
@@ -23,9 +28,7 @@ struct ConversationBubbleView: View {
     }
 
     private var timeFormatted: String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: item.timestamp)
+        Self.bubbleTimeFormatter.string(from: item.timestamp)
     }
 
     var body: some View {
@@ -41,6 +44,7 @@ struct ConversationBubbleView: View {
                     .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundStyle(isUser ? Color.white : palette.primaryText)
                     .multilineTextAlignment(isUser ? .trailing : .leading)
+                    .frame(maxWidth: 320, alignment: isUser ? .trailing : .leading)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(

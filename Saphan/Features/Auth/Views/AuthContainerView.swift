@@ -4,19 +4,18 @@ import SaphanCore
 struct AuthContainerView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @State private var showingSignUp = false
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case email
+        case password
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.05, green: 0.05, blue: 0.15),
-                        Color(red: 0.1, green: 0.05, blue: 0.2)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                SaphanTheme.authBackgroundGradient()
+                    .ignoresSafeArea()
 
                 ScrollView {
                     VStack(spacing: 32) {
@@ -25,7 +24,7 @@ struct AuthContainerView: View {
                                 .font(.system(size: 60))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: [Color.blue, Color.purple],
+                                        colors: [SaphanTheme.brandCoral, Color(red: 193/255, green: 162/255, blue: 139/255)],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -59,22 +58,45 @@ struct AuthContainerView: View {
                                 TextField("Email", text: $authViewModel.email)
                                     .textContentType(.emailAddress)
                                     .keyboardType(.emailAddress)
-                                    .autocapitalization(.none)
+                                    .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
+                                    .submitLabel(.next)
+                                    .focused($focusedField, equals: .email)
                                     .padding()
                                     .background(Color.white.opacity(0.1))
                                     .cornerRadius(12)
                                     .foregroundColor(.white)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .stroke(focusedField == .email ? SaphanTheme.brandCoral : Color.white.opacity(0.18), lineWidth: 1)
+                                    )
+                                    .onSubmit {
+                                        focusedField = .password
+                                    }
 
                                 SecureField("Password", text: $authViewModel.password)
                                     .textContentType(.password)
+                                    .submitLabel(.go)
+                                    .focused($focusedField, equals: .password)
                                     .padding()
                                     .background(Color.white.opacity(0.1))
                                     .cornerRadius(12)
                                     .foregroundColor(.white)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .stroke(focusedField == .password ? SaphanTheme.brandCoral : Color.white.opacity(0.18), lineWidth: 1)
+                                    )
+                                    .onSubmit {
+                                        guard !authViewModel.isLoading else { return }
+                                        Task {
+                                            await authViewModel.signIn()
+                                        }
+                                    }
                             }
 
                             Button {
+                                focusedField = nil
+                                HapticManager.impact(.soft)
                                 Task {
                                     await authViewModel.signIn()
                                 }
@@ -90,25 +112,21 @@ struct AuthContainerView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.blue, Color.purple],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .background(SaphanTheme.primaryCTA(for: .dark))
                             .foregroundColor(.white)
                             .cornerRadius(12)
+                            .buttonStyle(SaphanPressableStyle(scale: 0.98))
                             .disabled(authViewModel.isLoading)
 
                             Button {
                                 showingSignUp = true
+                                HapticManager.selection()
                             } label: {
                                 HStack(spacing: 4) {
                                     Text("Don't have an account?")
                                         .foregroundColor(.white.opacity(0.7))
                                     Text("Sign Up")
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(SaphanTheme.brandCoral)
                                         .fontWeight(.semibold)
                                 }
                                 .font(.subheadline)
@@ -132,6 +150,7 @@ struct AuthContainerView: View {
                             .padding(.vertical, 8)
 
                             Button {
+                                focusedField = nil
                                 Task {
                                     await authViewModel.signInWithApple()
                                 }
@@ -149,9 +168,11 @@ struct AuthContainerView: View {
                             .background(Color.white)
                             .foregroundColor(.black)
                             .cornerRadius(12)
+                            .buttonStyle(SaphanPressableStyle(scale: 0.98))
                             .disabled(authViewModel.isLoading)
 
                             Button {
+                                focusedField = nil
                                 Task {
                                     await authViewModel.signInWithGoogle()
                                 }
@@ -169,6 +190,7 @@ struct AuthContainerView: View {
                             .background(Color.white)
                             .foregroundColor(.black)
                             .cornerRadius(12)
+                            .buttonStyle(SaphanPressableStyle(scale: 0.98))
                             .disabled(authViewModel.isLoading)
 
                             Button {
@@ -187,6 +209,10 @@ struct AuthContainerView: View {
 
                         Spacer()
                     }
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .onTapGesture {
+                    focusedField = nil
                 }
             }
             .navigationDestination(isPresented: $showingSignUp) {

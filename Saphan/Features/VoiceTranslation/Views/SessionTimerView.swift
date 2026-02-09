@@ -7,13 +7,14 @@ struct SessionTimerView: View {
     let connectionState: ConnectionState
 
     @Environment(\.colorScheme) private var colorScheme
+    @State private var pulse = false
 
-    private var palette: VoiceTranslationTheme.Palette {
-        VoiceTranslationTheme.palette(for: colorScheme)
+    private var palette: SaphanTheme.Palette {
+        SaphanTheme.palette(for: colorScheme)
     }
 
     private var statusColor: Color {
-        VoiceTranslationTheme.connectionTint(for: connectionState, in: colorScheme)
+        SaphanTheme.connectionTint(for: connectionState, in: colorScheme)
     }
 
     private var statusText: String {
@@ -49,6 +50,9 @@ struct SessionTimerView: View {
                     .fill(statusColor)
                     .frame(width: 9, height: 9)
                     .shadow(color: statusColor.opacity(0.6), radius: 6)
+                    .scaleEffect(pulse && (connectionState == .connected || connectionState == .connecting) ? 1.18 : 1.0)
+                    .opacity(pulse && connectionState == .connected ? 0.75 : 1.0)
+                    .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
 
                 Text(statusText)
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -99,6 +103,9 @@ struct SessionTimerView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(palette.stroke.opacity(0.8), lineWidth: 1)
         )
+        .onAppear {
+            pulse = true
+        }
     }
 }
 

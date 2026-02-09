@@ -29,6 +29,18 @@ enum KeyboardButtonStyle {
     }
 }
 
+struct KeyboardPressableStyle: ButtonStyle {
+    var scale: CGFloat = 0.95
+    var pressedOpacity: Double = 0.9
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1)
+            .opacity(configuration.isPressed ? pressedOpacity : 1)
+            .animation(.spring(response: 0.22, dampingFraction: 0.75), value: configuration.isPressed)
+    }
+}
+
 struct KeyboardButton: View {
     let title: String?
     let icon: String?
@@ -56,17 +68,28 @@ struct KeyboardButton: View {
         Button(action: action) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(isPressed ? style.backgroundColor.opacity(0.7) : style.backgroundColor)
+                .background(isPressed ? style.backgroundColor.opacity(0.76) : style.backgroundColor)
                 .foregroundStyle(style.foregroundColor)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .shadow(color: .black.opacity(0.25), radius: 0.5, x: 0, y: 1)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .stroke(Color.black.opacity(isPressed ? 0.06 : 0.12), lineWidth: 0.6)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .shadow(color: .black.opacity(isPressed ? 0.12 : 0.2), radius: isPressed ? 0.2 : 0.7, x: 0, y: 1)
+                .scaleEffect(isPressed ? 0.97 : 1.0)
+                .animation(.spring(response: 0.18, dampingFraction: 0.72), value: isPressed)
         }
         .buttonStyle(.plain)
         .frame(height: height)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
-                .onChanged { _ in isPressed = true }
-                .onEnded { _ in isPressed = false }
+                .onChanged { _ in
+                    guard !isPressed else { return }
+                    isPressed = true
+                }
+                .onEnded { _ in
+                    isPressed = false
+                }
         )
     }
 

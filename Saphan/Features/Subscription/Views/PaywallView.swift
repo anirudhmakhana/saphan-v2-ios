@@ -7,15 +7,8 @@ struct PaywallView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.05, green: 0.05, blue: 0.15),
-                    Color(red: 0.1, green: 0.05, blue: 0.2)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            SaphanTheme.authBackgroundGradient()
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 HStack {
@@ -23,11 +16,13 @@ struct PaywallView: View {
 
                     Button {
                         dismiss()
+                        HapticManager.selection()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 28))
                             .foregroundColor(.white.opacity(0.7))
                     }
+                    .buttonStyle(SaphanPressableStyle(scale: 0.9))
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
@@ -39,7 +34,7 @@ struct PaywallView: View {
                                 .font(.system(size: 80))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: [.yellow, .orange],
+                                        colors: [SaphanTheme.brandCoral, Color(red: 193/255, green: 162/255, blue: 139/255)],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -73,6 +68,7 @@ struct PaywallView: View {
                                     isSelected: viewModel.selectedOffering?.id == offering.id,
                                     onSelect: {
                                         viewModel.selectedOffering = offering
+                                        HapticManager.selection()
                                     }
                                 )
                             }
@@ -96,6 +92,7 @@ struct PaywallView: View {
                         VStack(spacing: 12) {
                             Button {
                                 guard let offering = viewModel.selectedOffering else { return }
+                                HapticManager.impact(.soft)
                                 Task {
                                     await viewModel.purchase(offering: offering)
                                     if viewModel.isSubscribed {
@@ -114,15 +111,10 @@ struct PaywallView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(
-                                LinearGradient(
-                                    colors: [.purple, .pink],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .background(SaphanTheme.primaryCTA(for: .dark))
                             .foregroundColor(.white)
                             .cornerRadius(12)
+                            .buttonStyle(SaphanPressableStyle(scale: 0.985))
                             .disabled(viewModel.isLoading || viewModel.selectedOffering == nil)
 
                             Button {
@@ -135,6 +127,7 @@ struct PaywallView: View {
                                     .fontWeight(.medium)
                                     .foregroundColor(.white.opacity(0.7))
                             }
+                            .buttonStyle(SaphanPressableStyle(scale: 0.97))
                             .disabled(viewModel.isLoading)
                         }
                         .padding(.horizontal, 24)
@@ -148,11 +141,11 @@ struct PaywallView: View {
                             HStack(spacing: 16) {
                                 Link("Privacy Policy", destination: URL(string: "https://saphan.app/privacy")!)
                                     .font(.caption)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(SaphanTheme.brandCoral)
 
                                 Link("Terms of Service", destination: URL(string: "https://saphan.app/terms")!)
                                     .font(.caption)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(SaphanTheme.brandCoral)
                             }
                         }
                         .padding(.horizontal, 24)
@@ -161,6 +154,7 @@ struct PaywallView: View {
                 }
             }
         }
+        .animation(SaphanMotion.quickSpring, value: viewModel.selectedOffering?.id)
     }
 }
 
@@ -173,7 +167,7 @@ struct ProFeatureRow: View {
                 .font(.system(size: 24))
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [.blue, .purple],
+                        colors: [SaphanTheme.brandCoral, Color(red: 193/255, green: 162/255, blue: 139/255)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -228,7 +222,7 @@ struct OfferingCard: View {
                                     .padding(.vertical, 4)
                                     .background(
                                         LinearGradient(
-                                            colors: [.green, .blue],
+                                            colors: [Color(red: 52/255, green: 199/255, blue: 89/255), SaphanTheme.brandCoral],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
@@ -259,11 +253,11 @@ struct OfferingCard: View {
                 if isSelected {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.blue)
+                            .foregroundColor(SaphanTheme.brandCoral)
                         Text("Selected")
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundColor(.blue)
+                            .foregroundColor(SaphanTheme.brandCoral)
                         Spacer()
                     }
                 }
@@ -271,19 +265,19 @@ struct OfferingCard: View {
             .padding()
             .background(
                 isSelected
-                    ? Color.blue.opacity(0.2)
+                    ? SaphanTheme.brandCoral.opacity(0.2)
                     : Color.white.opacity(0.05)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(
-                        isSelected ? Color.blue : Color.clear,
+                        isSelected ? SaphanTheme.brandCoral : Color.clear,
                         lineWidth: 2
                     )
             )
             .cornerRadius(12)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SaphanPressableStyle(scale: 0.985))
     }
 }
 

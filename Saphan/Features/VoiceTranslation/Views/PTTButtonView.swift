@@ -11,8 +11,8 @@ struct PTTButtonView: View {
     @State private var pulse = false
     @Environment(\.colorScheme) private var colorScheme
 
-    private var palette: VoiceTranslationTheme.Palette {
-        VoiceTranslationTheme.palette(for: colorScheme)
+    private var palette: SaphanTheme.Palette {
+        SaphanTheme.palette(for: colorScheme)
     }
 
     private var signalColor: Color {
@@ -72,14 +72,24 @@ struct PTTButtonView: View {
                     .foregroundStyle(.white)
             }
             .scaleEffect(isPressed ? 0.94 : 1.0)
-            .animation(.spring(response: 0.28, dampingFraction: 0.7), value: isPressed)
+            .animation(SaphanMotion.quickSpring, value: isPressed)
             .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: pulse)
+            .contentShape(Circle())
             .gesture(
                 DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        guard !isPressed, !isSpeaking else { return }
-                        isPressed = true
-                        onPressDown()
+                    .onChanged { value in
+                        guard !isSpeaking else { return }
+                        let center = CGPoint(x: 85, y: 85)
+                        let distance = hypot(value.location.x - center.x, value.location.y - center.y)
+                        let isInsideTouchRegion = distance <= 98
+
+                        if isInsideTouchRegion && !isPressed {
+                            isPressed = true
+                            onPressDown()
+                        } else if !isInsideTouchRegion && isPressed {
+                            isPressed = false
+                            onPressUp()
+                        }
                     }
                     .onEnded { _ in
                         guard isPressed else { return }
@@ -89,6 +99,11 @@ struct PTTButtonView: View {
             )
             .onAppear {
                 pulse = true
+            }
+            .onDisappear {
+                guard isPressed else { return }
+                isPressed = false
+                onPressUp()
             }
             .disabled(isSpeaking)
 

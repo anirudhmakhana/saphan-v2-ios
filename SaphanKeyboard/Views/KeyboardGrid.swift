@@ -41,6 +41,7 @@ struct KeyboardGrid: View {
             .padding(.vertical, layout.verticalPadding)
         }
         .frame(height: Constants.UI.keyboardHeight)
+        .animation(.spring(response: 0.24, dampingFraction: 0.82), value: showNumbers)
     }
 
     private func letterKeyboard(layout: KeyboardLayout) -> some View {
@@ -186,13 +187,16 @@ struct KeyboardGrid: View {
             style: .special,
             height: height
         ) {
-            showNumbers = false
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) {
+                showNumbers = false
+            }
             HapticManager.impact(.light)
         }
     }
 
     private func startDeleteRepeat() {
         stopDeleteRepeat()
+        HapticManager.impact(.rigid)
         deleteTimer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { _ in
             Task { @MainActor in
                 viewModel.deleteBackward()
@@ -212,7 +216,9 @@ struct KeyboardGrid: View {
                 style: .special,
                 height: layout.keyHeight
             ) {
-                showNumbers.toggle()
+                withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) {
+                    showNumbers.toggle()
+                }
                 HapticManager.impact(.light)
             }
             .frame(width: layout.bottomKeyWidth)

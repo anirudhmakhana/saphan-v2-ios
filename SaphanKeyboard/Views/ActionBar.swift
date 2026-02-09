@@ -4,9 +4,10 @@ import SaphanCore
 struct ActionBar: View {
     @ObservedObject var viewModel: KeyboardViewModel
     @State private var showCopiedToast = false
+    @State private var copiedToastWorkItem: DispatchWorkItem?
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             pasteButton
             copyButton
             clearButton
@@ -20,6 +21,11 @@ struct ActionBar: View {
         .frame(height: Constants.UI.actionBarHeight)
         .background(Color(.secondarySystemBackground))
         .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.black.opacity(0.08))
+                .frame(height: 0.5)
+        }
+        .overlay(alignment: .top) {
             if showCopiedToast {
                 copiedToast
             }
@@ -29,12 +35,8 @@ struct ActionBar: View {
     private var copyButton: some View {
         Button {
             viewModel.copyTranslation()
-            showCopiedToast = true
+            showCopiedToastWithAutoDismiss()
             HapticManager.notification(.success)
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                showCopiedToast = false
-            }
         } label: {
             Image(systemName: "doc.on.doc")
                 .font(.subheadline)
@@ -66,7 +68,8 @@ struct ActionBar: View {
             viewModel.insertTranslation()
             HapticManager.notification(.success)
         } label: {
-            Image(systemName: "arrow.turn.down.left")
+            Label("Insert", systemImage: "arrow.turn.down.left")
+                .labelStyle(.iconOnly)
                 .font(.subheadline.weight(.semibold))
         }
         .buttonStyle(.borderedProminent)
@@ -80,8 +83,17 @@ struct ActionBar: View {
             viewModel.requestTranslation()
             HapticManager.impact(.medium)
         } label: {
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.subheadline.weight(.semibold))
+            Group {
+                if viewModel.state == .loading {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .tint(.white)
+                        .scaleEffect(0.7)
+                } else {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.small)
@@ -114,7 +126,22 @@ struct ActionBar: View {
             .clipShape(Capsule())
             .offset(y: -8)
             .transition(.move(edge: .bottom).combined(with: .opacity))
-            .animation(.easeInOut(duration: 0.2), value: showCopiedToast)
+            .animation(.easeInOut(duration: 0.18), value: showCopiedToast)
+    }
+
+    private func showCopiedToastWithAutoDismiss() {
+        copiedToastWorkItem?.cancel()
+        withAnimation(.easeInOut(duration: 0.18)) {
+            showCopiedToast = true
+        }
+
+        let workItem = DispatchWorkItem {
+            withAnimation(.easeInOut(duration: 0.18)) {
+                showCopiedToast = false
+            }
+        }
+        copiedToastWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: workItem)
     }
 }
 

@@ -5,35 +5,36 @@ struct TopBar: View {
     @ObservedObject var viewModel: KeyboardViewModel
     @State private var showLanguagePicker = false
     @State private var showTonePicker = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 12) {
             modeToggle
+                .frame(width: 84, alignment: .leading)
 
-            Spacer()
+            Spacer(minLength: 8)
 
             languagePairButton
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            if viewModel.mode == .reply {
-                toneButton
-            } else {
-                Spacer()
-                    .frame(width: 80)
-            }
+            toneSlot
+                .frame(width: 86, alignment: .trailing)
         }
         .padding(.horizontal, 12)
         .frame(height: Constants.UI.topBarHeight)
-        .background(Color(.secondarySystemBackground))
+        .background(Color(.secondarySystemBackground).opacity(colorScheme == .dark ? 0.92 : 0.96))
         .sheet(isPresented: $showLanguagePicker) {
             LanguagePickerSheet(viewModel: viewModel)
                 .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showTonePicker) {
             TonePickerSheet(viewModel: viewModel)
                 .presentationDetents([.height(200)])
+                .presentationDragIndicator(.visible)
         }
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: viewModel.mode)
     }
 
     private var modeToggle: some View {
@@ -43,6 +44,10 @@ struct TopBar: View {
         }
         .padding(3)
         .background(Color(.tertiarySystemBackground))
+        .overlay(
+            Capsule()
+                .stroke(Color.black.opacity(colorScheme == .dark ? 0.18 : 0.1), lineWidth: 0.8)
+        )
         .clipShape(Capsule())
     }
 
@@ -60,7 +65,7 @@ struct TopBar: View {
                 .foregroundStyle(viewModel.mode == mode ? .white : .primary)
                 .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(KeyboardPressableStyle(scale: 0.94))
         .accessibilityLabel(mode == .understand ? "Understand mode" : "Reply mode")
     }
 
@@ -79,13 +84,31 @@ struct TopBar: View {
 
                 Text(viewModel.languagePair.target.code.uppercased())
                     .font(.caption.bold())
+
+                Image(systemName: "chevron.down")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(Color(.tertiarySystemBackground))
+            .overlay(
+                Capsule()
+                    .stroke(Color.black.opacity(colorScheme == .dark ? 0.18 : 0.08), lineWidth: 0.7)
+            )
             .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(KeyboardPressableStyle(scale: 0.96))
+    }
+
+    @ViewBuilder
+    private var toneSlot: some View {
+        if viewModel.mode == .reply {
+            toneButton
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+        } else {
+            Color.clear
+        }
     }
 
     private var toneButton: some View {
@@ -102,9 +125,13 @@ struct TopBar: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(Color(.tertiarySystemBackground))
+            .overlay(
+                Capsule()
+                    .stroke(Color.black.opacity(colorScheme == .dark ? 0.18 : 0.08), lineWidth: 0.7)
+            )
             .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(KeyboardPressableStyle(scale: 0.96))
     }
 }
 

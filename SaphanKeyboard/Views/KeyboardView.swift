@@ -19,12 +19,15 @@ struct KeyboardView: View {
         }
         .background(keyboardBackground)
         .ignoresSafeArea(.all)
+        .animation(.spring(response: 0.26, dampingFraction: 0.84), value: viewModel.state)
     }
 
-    private var keyboardBackground: Color {
-        colorScheme == .dark
-            ? Color(uiColor: UIColor(white: 0.1, alpha: 1))
-            : Color(uiColor: UIColor(white: 0.85, alpha: 1))
+    private var keyboardBackground: LinearGradient {
+        let colors: [Color] = colorScheme == .dark
+            ? [Color(uiColor: UIColor(white: 0.12, alpha: 1)), Color(uiColor: UIColor(white: 0.08, alpha: 1))]
+            : [Color(uiColor: UIColor(white: 0.9, alpha: 1)), Color(uiColor: UIColor(white: 0.83, alpha: 1))]
+
+        return LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
     }
 }
 

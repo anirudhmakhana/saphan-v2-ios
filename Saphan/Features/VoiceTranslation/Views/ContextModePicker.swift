@@ -8,8 +8,8 @@ struct ContextModePicker: View {
 
     @Environment(\.colorScheme) private var colorScheme
 
-    private var palette: VoiceTranslationTheme.Palette {
-        VoiceTranslationTheme.palette(for: colorScheme)
+    private var palette: SaphanTheme.Palette {
+        SaphanTheme.palette(for: colorScheme)
     }
 
     var body: some View {
@@ -23,7 +23,7 @@ struct ContextModePicker: View {
 
                 Text(selectedMode.name)
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(VoiceTranslationTheme.contextTint(for: selectedMode, in: colorScheme))
+                    .foregroundStyle(SaphanTheme.contextTint(for: selectedMode, in: colorScheme))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .background(
@@ -32,24 +32,28 @@ struct ContextModePicker: View {
                     )
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(ContextMode.allModes) { mode in
-                        ContextModeChip(
-                            mode: mode,
-                            isSelected: selectedMode.id == mode.id,
-                            isEnabled: isEnabled,
-                            colorScheme: colorScheme
-                        ) {
-                            guard isEnabled else { return }
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                selectedMode = mode
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(ContextMode.allModes) { mode in
+                            ContextModeChip(
+                                mode: mode,
+                                isSelected: selectedMode.id == mode.id,
+                                isEnabled: isEnabled,
+                                colorScheme: colorScheme
+                            ) {
+                                guard isEnabled else { return }
+                                withAnimation(SaphanMotion.quickSpring) {
+                                    selectedMode = mode
+                                    proxy.scrollTo(mode.id, anchor: .center)
+                                }
+                                HapticManager.shared.selection()
                             }
-                            HapticManager.shared.selection()
+                            .id(mode.id)
                         }
                     }
+                    .padding(.vertical, 2)
                 }
-                .padding(.vertical, 2)
             }
         }
         .opacity(isEnabled ? 1.0 : 0.6)
@@ -63,12 +67,12 @@ private struct ContextModeChip: View {
     let colorScheme: ColorScheme
     let action: () -> Void
 
-    private var palette: VoiceTranslationTheme.Palette {
-        VoiceTranslationTheme.palette(for: colorScheme)
+    private var palette: SaphanTheme.Palette {
+        SaphanTheme.palette(for: colorScheme)
     }
 
     private var tint: Color {
-        VoiceTranslationTheme.contextTint(for: mode, in: colorScheme)
+        SaphanTheme.contextTint(for: mode, in: colorScheme)
     }
 
     var body: some View {
@@ -100,7 +104,7 @@ private struct ContextModeChip: View {
             )
             .shadow(color: isSelected ? tint.opacity(0.25) : .clear, radius: 10, y: 4)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SaphanPressableStyle(scale: 0.97, pressedOpacity: 0.95))
         .disabled(!isEnabled)
     }
 }

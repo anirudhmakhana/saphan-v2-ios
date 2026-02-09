@@ -55,6 +55,7 @@ class KeyboardViewController: UIInputViewController {
 
         let hostingController = UIHostingController(rootView: keyboardView)
         hostingController.view.backgroundColor = .clear
+        hostingController.view.tintColor = UIColor(red: 224/255, green: 120/255, blue: 86/255, alpha: 1)
         hostingController.view.translatesAutoresizingMaskIntoConstraints = false
 
         addChild(hostingController)

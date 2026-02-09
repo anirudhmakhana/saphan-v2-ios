@@ -18,7 +18,10 @@ struct MainTabView: View {
                 }
                 .tag(1)
         }
-        .tint(Color.blue)
+        .tint(SaphanTheme.brandCoral)
+        .onChange(of: selectedTab) { _ in
+            HapticManager.selection()
+        }
     }
 }
 

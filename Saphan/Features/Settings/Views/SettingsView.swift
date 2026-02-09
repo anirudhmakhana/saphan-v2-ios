@@ -16,6 +16,7 @@ struct SettingsView: View {
                 aboutSection
                 dangerZoneSection
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showingPaywall) {
@@ -113,21 +114,24 @@ struct SettingsView: View {
                 if user.isGuest {
                     Button {
                         authViewModel.showSignUp = true
+                        HapticManager.selection()
                     } label: {
                         Label("Create Account", systemImage: "person.badge.plus")
-                            .foregroundColor(.blue)
+                            .foregroundColor(SaphanTheme.brandCoral)
                     }
                 }
             }
 
             Button {
                 showingPaywall = true
+                HapticManager.selection()
             } label: {
                 Label("Upgrade to Pro", systemImage: "star.fill")
-                    .foregroundColor(.purple)
+                    .foregroundColor(SaphanTheme.brandCoral)
             }
 
             Button(role: .destructive) {
+                HapticManager.impact(.soft)
                 authViewModel.signOut()
             } label: {
                 Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
@@ -189,6 +193,7 @@ struct SettingsView: View {
             .alert("Clear Cache", isPresented: $viewModel.showingClearCacheAlert) {
                 Button("Cancel", role: .cancel) { }
                 Button("Clear", role: .destructive) {
+                    HapticManager.impact(.rigid)
                     Task {
                         await viewModel.clearCache()
                     }
@@ -205,6 +210,7 @@ struct SettingsView: View {
             .alert("Reset Settings", isPresented: $viewModel.showingResetSettingsAlert) {
                 Button("Cancel", role: .cancel) { }
                 Button("Reset", role: .destructive) {
+                    HapticManager.impact(.rigid)
                     viewModel.resetAllSettings()
                 }
             } message: {

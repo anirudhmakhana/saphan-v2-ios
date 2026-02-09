@@ -10,9 +10,10 @@ struct LanguageSelectorView: View {
     let onSwapTap: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
+    @State private var swapRotation: Double = 0
 
-    private var palette: VoiceTranslationTheme.Palette {
-        VoiceTranslationTheme.palette(for: colorScheme)
+    private var palette: SaphanTheme.Palette {
+        SaphanTheme.palette(for: colorScheme)
     }
 
     var body: some View {
@@ -24,7 +25,12 @@ struct LanguageSelectorView: View {
                 action: onLanguage1Tap
             )
 
-            Button(action: onSwapTap) {
+            Button {
+                withAnimation(SaphanMotion.quickSpring) {
+                    swapRotation += 180
+                }
+                onSwapTap()
+            } label: {
                 Image(systemName: "arrow.left.arrow.right")
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                     .foregroundStyle(palette.accent)
@@ -37,8 +43,10 @@ struct LanguageSelectorView: View {
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .stroke(palette.stroke.opacity(0.9), lineWidth: 1)
                     )
+                    .rotationEffect(.degrees(swapRotation))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(SaphanPressableStyle(scale: 0.92))
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
             LanguageCard(
                 roleTitle: "To",
@@ -53,7 +61,7 @@ struct LanguageSelectorView: View {
 private struct LanguageCard: View {
     let roleTitle: String
     let language: Language
-    let palette: VoiceTranslationTheme.Palette
+    let palette: SaphanTheme.Palette
     let action: () -> Void
 
     var body: some View {
@@ -107,7 +115,8 @@ private struct LanguageCard: View {
                     .stroke(palette.stroke.opacity(0.85), lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SaphanPressableStyle(scale: 0.975))
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 

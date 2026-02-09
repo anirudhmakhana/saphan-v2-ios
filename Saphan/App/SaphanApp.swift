@@ -10,6 +10,7 @@ struct SaphanApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .tint(SaphanTheme.brandCoral)
                 .environmentObject(authViewModel)
                 .environmentObject(networkMonitor)
         }

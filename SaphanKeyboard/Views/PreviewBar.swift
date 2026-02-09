@@ -5,27 +5,48 @@ struct PreviewBar: View {
     @ObservedObject var viewModel: KeyboardViewModel
     @State private var isExpanded = false
 
+    private var isExpandable: Bool {
+        viewModel.state != .idle && viewModel.state != .loading
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             content
                 .frame(height: isExpanded ? Constants.UI.previewBarExpandedHeight : Constants.UI.previewBarCollapsedHeight)
-                .animation(.easeInOut(duration: 0.2), value: isExpanded)
+                .animation(.spring(response: 0.26, dampingFraction: 0.84), value: isExpanded)
+                .overlay(alignment: .topTrailing) {
+                    if isExpandable {
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.trailing, 12)
+                            .padding(.top, 10)
+                            .transition(.opacity)
+                    }
+                }
         }
         .background(Color(.systemBackground))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.black.opacity(0.08))
+                .frame(height: 0.5)
+        }
+        .contentShape(Rectangle())
         .onTapGesture {
-            if viewModel.state != .idle {
+            if isExpandable {
                 withAnimation {
                     isExpanded.toggle()
                 }
+                HapticManager.selection()
             }
         }
         .onChange(of: viewModel.state) { newState in
             if newState == .error || newState == .ready {
-                withAnimation {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
                     isExpanded = true
                 }
             } else if newState == .idle {
-                withAnimation {
+                withAnimation(.easeInOut(duration: 0.18)) {
                     isExpanded = false
                 }
             }
@@ -83,17 +104,17 @@ struct PreviewBar: View {
                     .lineLimit(isExpanded ? 2 : 1)
             }
 
-            if let preview = viewModel.translationPreview {
-                Text(preview)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(isExpanded ? 3 : 1)
-            } else {
-                Text("Tap Translate")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .italic()
-            }
+                if let preview = viewModel.translationPreview {
+                    Text(preview)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(isExpanded ? 3 : 1)
+                } else {
+                    Text("Tap Translate to preview")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .italic()
+                }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
@@ -165,6 +186,7 @@ struct PreviewBar: View {
 
                 Button {
                     viewModel.retry()
+                    HapticManager.impact(.light)
                 } label: {
                     Text("Tap to retry")
                         .font(.caption)

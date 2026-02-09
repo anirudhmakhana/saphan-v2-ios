@@ -1,7 +1,7 @@
 import SwiftUI
 import SaphanCore
 
-enum VoiceTranslationTheme {
+enum SaphanTheme {
     struct Palette {
         let backgroundTop: Color
         let backgroundBottom: Color
@@ -11,41 +11,47 @@ enum VoiceTranslationTheme {
         let primaryText: Color
         let secondaryText: Color
         let accent: Color
+        let secondaryAccent: Color
         let accentSoft: Color
         let success: Color
         let warning: Color
         let danger: Color
     }
 
+    /// Sunset Coral — the brand's primary accent
+    static let brandCoral = Color.rgb(224, 120, 86)
+
     static func palette(for scheme: ColorScheme) -> Palette {
         if scheme == .dark {
             return Palette(
-                backgroundTop: .rgb(11, 16, 24),
-                backgroundBottom: .rgb(18, 27, 40),
-                surface: .rgb(23, 33, 47),
-                elevatedSurface: .rgb(30, 42, 60),
-                stroke: .rgb(47, 62, 84),
-                primaryText: .rgb(244, 248, 255),
-                secondaryText: .rgb(169, 182, 203),
-                accent: .rgb(94, 165, 255),
-                accentSoft: .rgb(37, 56, 83),
-                success: .rgb(62, 201, 136),
+                backgroundTop: .rgb(21, 23, 24),
+                backgroundBottom: .rgb(26, 26, 28),
+                surface: .rgb(30, 30, 30),
+                elevatedSurface: .rgb(44, 44, 46),
+                stroke: .rgb(58, 58, 60),
+                primaryText: .rgb(236, 237, 238),
+                secondaryText: .rgb(155, 161, 166),
+                accent: .rgb(224, 120, 86),
+                secondaryAccent: .rgb(193, 162, 139),
+                accentSoft: .rgb(60, 42, 36),
+                success: .rgb(52, 199, 89),
                 warning: .rgb(221, 164, 71),
                 danger: .rgb(255, 114, 114)
             )
         }
 
         return Palette(
-            backgroundTop: .rgb(246, 248, 252),
-            backgroundBottom: .rgb(234, 239, 247),
-            surface: .white.opacity(0.92),
-            elevatedSurface: .rgb(244, 247, 252),
-            stroke: .rgb(219, 227, 239),
-            primaryText: .rgb(20, 28, 40),
-            secondaryText: .rgb(98, 111, 130),
-            accent: .rgb(21, 126, 239),
-            accentSoft: .rgb(219, 236, 255),
-            success: .rgb(46, 165, 107),
+            backgroundTop: .white,
+            backgroundBottom: .rgb(249, 247, 244),
+            surface: .rgb(249, 247, 244),
+            elevatedSurface: .white,
+            stroke: .rgb(219, 216, 210),
+            primaryText: .rgb(44, 44, 46),
+            secondaryText: .rgb(104, 112, 118),
+            accent: .rgb(224, 120, 86),
+            secondaryAccent: .rgb(193, 162, 139),
+            accentSoft: .rgb(252, 237, 230),
+            success: .rgb(52, 199, 89),
             warning: .rgb(208, 139, 49),
             danger: .rgb(215, 78, 78)
         )
@@ -60,11 +66,22 @@ enum VoiceTranslationTheme {
         )
     }
 
+    /// Full-screen dark gradient for auth / splash screens
+    static func authBackgroundGradient() -> LinearGradient {
+        LinearGradient(
+            colors: [
+                .rgb(44, 44, 46),
+                .rgb(26, 26, 26),
+                .rgb(15, 15, 15)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
     static func primaryCTA(for scheme: ColorScheme) -> LinearGradient {
-        let palette = palette(for: scheme)
-        let accent = palette.accent
-        return LinearGradient(
-            colors: [accent.opacity(0.95), accent.opacity(0.78)],
+        LinearGradient(
+            colors: [.rgb(224, 120, 86), .rgb(208, 106, 74)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -97,19 +114,40 @@ enum VoiceTranslationTheme {
         let dark = scheme == .dark
         switch mode.id {
         case "social":
-            return dark ? .rgb(111, 183, 255) : .rgb(24, 124, 228)
+            return dark ? .rgb(170, 170, 178) : .rgb(100, 100, 110)
         case "dating":
-            return dark ? .rgb(255, 143, 167) : .rgb(211, 78, 108)
+            return dark ? .rgb(240, 140, 150) : .rgb(200, 80, 100)
         case "business":
-            return dark ? .rgb(145, 202, 255) : .rgb(40, 108, 190)
+            return dark ? .rgb(130, 160, 200) : .rgb(60, 100, 160)
         case "travel":
-            return dark ? .rgb(128, 232, 196) : .rgb(26, 148, 102)
+            return dark ? .rgb(120, 200, 180) : .rgb(40, 140, 110)
         case "emergency":
-            return dark ? .rgb(255, 139, 139) : .rgb(205, 77, 77)
+            return dark ? .rgb(240, 120, 120) : .rgb(200, 70, 70)
         default:
             return palette(for: scheme).accent
         }
     }
+}
+
+/// Keep the old name as a typealias so any straggling references still compile
+typealias VoiceTranslationTheme = SaphanTheme
+
+struct SaphanPressableStyle: ButtonStyle {
+    var scale: CGFloat = 0.97
+    var pressedOpacity: Double = 0.9
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1)
+            .opacity(configuration.isPressed ? pressedOpacity : 1)
+            .animation(.spring(response: 0.24, dampingFraction: 0.76), value: configuration.isPressed)
+    }
+}
+
+enum SaphanMotion {
+    static let quickSpring = Animation.spring(response: 0.28, dampingFraction: 0.82)
+    static let smoothSpring = Animation.spring(response: 0.36, dampingFraction: 0.84)
+    static let quickEase = Animation.easeInOut(duration: 0.2)
 }
 
 private extension Color {

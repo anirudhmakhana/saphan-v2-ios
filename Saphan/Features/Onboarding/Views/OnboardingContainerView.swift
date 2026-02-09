@@ -13,15 +13,8 @@ struct OnboardingContainerView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.05, green: 0.05, blue: 0.15),
-                    Color(red: 0.1, green: 0.05, blue: 0.2)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            SaphanTheme.authBackgroundGradient()
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 HStack {
@@ -36,6 +29,8 @@ struct OnboardingContainerView: View {
                                 .fontWeight(.medium)
                                 .foregroundColor(.white.opacity(0.7))
                         }
+                        .buttonStyle(SaphanPressableStyle(scale: 0.96))
+                        .transition(.opacity)
                     }
                 }
                 .padding(.horizontal, 24)
@@ -44,7 +39,7 @@ struct OnboardingContainerView: View {
                 TabView(selection: $currentPage) {
                     OnboardingPageView(
                         icon: "figure.2.and.child.holdinghands",
-                        iconGradient: [.blue, .purple],
+                        iconGradient: [SaphanTheme.brandCoral, Color(red: 193/255, green: 162/255, blue: 139/255)],
                         title: "Welcome to Saphan",
                         description: "Translate feelings, not just words.\n\nConnect with people across languages and cultures with context-aware translation."
                     )
@@ -52,7 +47,7 @@ struct OnboardingContainerView: View {
 
                     OnboardingPageView(
                         icon: "waveform",
-                        iconGradient: [.blue, .cyan],
+                        iconGradient: [SaphanTheme.brandCoral, Color(red: 208/255, green: 106/255, blue: 74/255)],
                         title: "Real-Time Voice Translation",
                         description: "Speak naturally and hear translations instantly in 16 languages.\n\nChoose the context that fits your conversation."
                     )
@@ -60,7 +55,7 @@ struct OnboardingContainerView: View {
 
                     OnboardingPageView(
                         icon: "keyboard",
-                        iconGradient: [.purple, .pink],
+                        iconGradient: [Color(red: 193/255, green: 162/255, blue: 139/255), SaphanTheme.brandCoral],
                         title: "Smart Translation Keyboard",
                         description: "Type in any app and translate with the perfect tone.\n\nFrom casual chats to professional emails."
                     )
@@ -68,7 +63,7 @@ struct OnboardingContainerView: View {
 
                     OnboardingPageView(
                         icon: "checkmark.circle.fill",
-                        iconGradient: [.green, .blue],
+                        iconGradient: [Color(red: 52/255, green: 199/255, blue: 89/255), SaphanTheme.brandCoral],
                         title: "You're All Set!",
                         description: "To use the translation keyboard, enable it in Settings > General > Keyboard > Keyboards > Add New Keyboard > Saphan.",
                         showContinueButton: true,
@@ -83,7 +78,7 @@ struct OnboardingContainerView: View {
 
                     if currentPage < totalPages - 1 {
                         Button {
-                            withAnimation {
+                            withAnimation(SaphanMotion.quickSpring) {
                                 currentPage += 1
                             }
                         } label: {
@@ -93,20 +88,18 @@ struct OnboardingContainerView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 50)
-                                .background(
-                                    LinearGradient(
-                                        colors: [.blue, .purple],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .background(SaphanTheme.primaryCTA(for: .dark))
                                 .cornerRadius(12)
                         }
+                        .buttonStyle(SaphanPressableStyle(scale: 0.985))
                         .padding(.horizontal, 32)
                     }
                 }
                 .padding(.bottom, 32)
             }
+        }
+        .onChange(of: currentPage) { _ in
+            HapticManager.selection()
         }
     }
 
@@ -162,13 +155,7 @@ struct OnboardingPageView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(
-                            LinearGradient(
-                                colors: [.blue, .purple],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .background(SaphanTheme.primaryCTA(for: .dark))
                         .cornerRadius(12)
                 }
                 .padding(.horizontal, 32)
@@ -188,7 +175,7 @@ struct PageIndicator: View {
         HStack(spacing: 8) {
             ForEach(0..<totalPages, id: \.self) { index in
                 Circle()
-                    .fill(index == currentPage ? Color.blue : Color.white.opacity(0.3))
+                    .fill(index == currentPage ? SaphanTheme.brandCoral : Color.white.opacity(0.3))
                     .frame(width: 8, height: 8)
                     .animation(.easeInOut, value: currentPage)
             }

@@ -10,24 +10,31 @@ struct RootView: View {
         ZStack {
             if isLoading {
                 SplashView()
+                    .transition(.opacity)
             } else if !hasCompletedOnboarding {
                 OnboardingContainerView {
                     PreferencesService.shared.hasCompletedOnboarding = true
-                    withAnimation {
+                    withAnimation(SaphanMotion.smoothSpring) {
                         hasCompletedOnboarding = true
                     }
                 }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
             } else if !authViewModel.isAuthenticated {
                 AuthContainerView()
+                    .transition(.opacity.combined(with: .scale(scale: 1.01)))
             } else {
                 MainTabView()
+                    .transition(.opacity)
             }
         }
+        .animation(SaphanMotion.smoothSpring, value: isLoading)
+        .animation(SaphanMotion.smoothSpring, value: hasCompletedOnboarding)
+        .animation(SaphanMotion.smoothSpring, value: authViewModel.isAuthenticated)
         .onAppear {
             hasCompletedOnboarding = PreferencesService.shared.hasCompletedOnboarding
             Task {
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
-                withAnimation {
+                try? await Task.sleep(nanoseconds: 1_100_000_000)
+                withAnimation(SaphanMotion.smoothSpring) {
                     isLoading = false
                 }
             }
@@ -36,9 +43,11 @@ struct RootView: View {
 }
 
 struct SplashView: View {
+    @State private var animate = false
+
     var body: some View {
         ZStack {
-            Color(red: 0.05, green: 0.05, blue: 0.15)
+            Color(red: 44/255, green: 44/255, blue: 46/255)
                 .ignoresSafeArea()
 
             VStack(spacing: 24) {
@@ -46,11 +55,13 @@ struct SplashView: View {
                     .font(.system(size: 80))
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color.blue, Color.purple],
+                            colors: [SaphanTheme.brandCoral, Color(red: 193/255, green: 162/255, blue: 139/255)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
+                    .scaleEffect(animate ? 1.02 : 0.97)
+                    .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: animate)
 
                 Text("Saphan")
                     .font(.system(size: 48, weight: .bold))
@@ -61,6 +72,9 @@ struct SplashView: View {
                     .scaleEffect(1.2)
                     .padding(.top, 8)
             }
+        }
+        .onAppear {
+            animate = true
         }
     }
 }

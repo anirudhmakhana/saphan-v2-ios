@@ -1,14 +1,20 @@
 import SwiftUI
 import SaphanCore
 
-/// Main voice translation screen
+/// Mic-first translation screen with 3-zone split layout:
+/// top bar (fixed), transcript (scrollable), mic zone (fixed at bottom).
 struct VoiceTranslationView: View {
     @StateObject private var viewModel = VoiceTranslationViewModel()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
+    @State private var isMicHeld = false
+    @State private var isPremium = false
+    @State private var showPaywall = false
+    @State private var showAdvancedControls = false
+    @State private var showConversationHistory = false
 
-    private var palette: VoiceTranslationTheme.Palette {
-        VoiceTranslationTheme.palette(for: colorScheme)
+    private var palette: SaphanTheme.Palette {
+        SaphanTheme.palette(for: colorScheme)
     }
 
     private var errorAlertBinding: Binding<Bool> {
@@ -22,35 +28,83 @@ struct VoiceTranslationView: View {
         )
     }
 
+    private var latestSourceTranscript: String? {
+        viewModel.history.last(where: { $0.role == .user })?.text
+    }
+
+    private var latestTranslation: String? {
+        viewModel.history.last(where: { $0.role == .assistant })?.text
+    }
+
+    private var exchangeCount: Int {
+        viewModel.history.filter { $0.role == .user }.count
+    }
+
+    // MARK: - Body
+
     var body: some View {
         ZStack {
-            VoiceTranslationTheme.backgroundGradient(for: colorScheme)
+            SaphanTheme.backgroundGradient(for: colorScheme)
                 .ignoresSafeArea()
 
-            VStack(spacing: 14) {
-                headerSection
-                configurationSection
-                conversationSection
-                controlSection
+            VStack(spacing: 0) {
+                topBar
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 6)
+
+                transcriptZone
+
+                micZone
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 10)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 10)
         }
-        .sheet(isPresented: $viewModel.showLanguage1Picker) {
-            LanguagePickerSheet(
-                selectedLanguage: $viewModel.language1,
-                title: "Choose source language"
-            )
-        }
+        .animation(SaphanMotion.smoothSpring, value: viewModel.connectionState)
+        .animation(SaphanMotion.smoothSpring, value: viewModel.history.count)
         .sheet(isPresented: $viewModel.showLanguage2Picker) {
             LanguagePickerSheet(
                 selectedLanguage: $viewModel.language2,
-                title: "Choose target language"
+                title: "Choose target language",
+                excludedLanguageCode: viewModel.language1.code
             )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $viewModel.showVoicePicker) {
             VoicePickerSheet(selectedVoice: $viewModel.selectedVoice)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showAdvancedControls) {
+            AdvancedTranslationControlsSheet(
+                isPremium: isPremium,
+                interactionMode: $viewModel.interactionMode,
+                contextMode: $viewModel.contextMode,
+                selectedVoice: $viewModel.selectedVoice,
+                onUpgradeTap: { showPaywall = true },
+                onModeChanged: { newMode in
+                    selectInteractionMode(newMode)
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showConversationHistory) {
+            ConversationHistorySheet(
+                history: viewModel.history,
+                onClear: {
+                    viewModel.clearHistory()
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+                .onDisappear {
+                    refreshPremiumState()
+                }
         }
         .alert("Translation Error", isPresented: errorAlertBinding) {
             Button("Dismiss", role: .cancel) {
@@ -64,317 +118,335 @@ struct VoiceTranslationView: View {
                 Task {
                     await viewModel.disconnect()
                 }
+            } else if newPhase == .active {
+                refreshPremiumState()
             }
+        }
+        .onChange(of: viewModel.connectionState) { newState in
+            if newState == .connected &&
+                isMicHeld &&
+                viewModel.interactionMode == .ptt &&
+                !viewModel.isPTTActive {
+                viewModel.pttPressed()
+            }
+
+            if newState != .connected {
+                isMicHeld = false
+            }
+        }
+        .onAppear {
+            refreshPremiumState()
         }
     }
 
-    private var headerSection: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Live Translate")
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                    .foregroundStyle(palette.primaryText)
+    // MARK: - Top Bar
 
-                Text("Real-time voice. Context-aware tone.")
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundStyle(palette.secondaryText)
-            }
+    private var topBar: some View {
+        HStack(spacing: 10) {
+            statusChip
 
             Spacer(minLength: 8)
 
             Button {
-                viewModel.showVoicePicker = true
+                viewModel.showLanguage2Picker = true
+                HapticManager.selection()
             } label: {
-                VStack(spacing: 2) {
-                    Image(systemName: "waveform.circle.fill")
-                        .font(.system(size: 21))
-                    Text("Voice")
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                HStack(spacing: 6) {
+                    Text(viewModel.language2.flag)
+                        .font(.system(size: 18))
+                    Text(viewModel.language2.name)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(palette.accent)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(palette.secondaryText)
                 }
-                .foregroundStyle(palette.accent)
-                .frame(width: 60, height: 60)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(palette.surface)
+                    Capsule()
+                        .fill(palette.elevatedSurface)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    Capsule()
                         .stroke(palette.stroke.opacity(0.85), lineWidth: 1)
                 )
             }
-            .buttonStyle(.plain)
-            .disabled(viewModel.isConnected)
-            .opacity(viewModel.isConnected ? 0.55 : 1.0)
+            .buttonStyle(SaphanPressableStyle(scale: 0.97))
         }
     }
 
-    private var configurationSection: some View {
-        VStack(spacing: 12) {
-            SessionTimerView(
-                duration: viewModel.sessionDurationFormatted,
-                connectionState: viewModel.connectionState
-            )
-
-            LanguageSelectorView(
-                language1: viewModel.language1,
-                language2: viewModel.language2,
-                onLanguage1Tap: { viewModel.showLanguage1Picker = true },
-                onLanguage2Tap: { viewModel.showLanguage2Picker = true },
-                onSwapTap: { viewModel.swapLanguages() }
-            )
-
-            ContextModePicker(
-                selectedMode: $viewModel.contextMode,
-                isEnabled: !viewModel.isConnected
-            )
+    private var statusChip: some View {
+        HStack(spacing: 7) {
+            Circle()
+                .fill(SaphanTheme.connectionTint(for: viewModel.connectionState, in: colorScheme))
+                .frame(width: 8, height: 8)
+            Text(connectionStatusText)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(SaphanTheme.connectionTint(for: viewModel.connectionState, in: colorScheme))
         }
-        .padding(14)
-        .background(cardBackground)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(SaphanTheme.connectionTint(for: viewModel.connectionState, in: colorScheme).opacity(0.15))
+        )
     }
 
-    private var conversationSection: some View {
-        VStack(spacing: 0) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Conversation")
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
-                        .foregroundStyle(palette.primaryText)
-                    Text("Live transcript and translated responses")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundStyle(palette.secondaryText)
-                }
-
-                Spacer()
-
-                if !viewModel.history.isEmpty {
-                    Button("Clear") {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            viewModel.clearHistory()
-                        }
-                    }
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(palette.accent)
-                }
-            }
-            .padding(.bottom, 10)
-
-            Divider()
-                .overlay(palette.stroke.opacity(0.7))
-                .padding(.bottom, 8)
-
-            if viewModel.history.isEmpty {
-                emptyHistoryView
-            } else {
-                ScrollViewReader { proxy in
-                    ScrollView(showsIndicators: false) {
-                        LazyVStack(spacing: 14) {
-                            ForEach(viewModel.history) { item in
-                                ConversationBubbleView(item: item)
-                                    .id(item.id)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    .onChange(of: viewModel.history.count) { _ in
-                        guard let lastItem = viewModel.history.last else { return }
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            proxy.scrollTo(lastItem.id, anchor: .bottom)
-                        }
-                    }
-                }
-            }
+    private var connectionStatusText: String {
+        switch viewModel.connectionState {
+        case .connected:
+            return "Ready"
+        case .connecting:
+            return "Connecting"
+        case .disconnected:
+            return "Idle"
+        case .error:
+            return "Issue"
         }
-        .padding(14)
+    }
+
+    // MARK: - Transcript Zone
+
+    private var transcriptZone: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer(minLength: 16)
+
+                if latestSourceTranscript == nil && latestTranslation == nil {
+                    contextualHint
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 40)
+                } else {
+                    latestTranscriptBlock
+                        .padding(.top, 12)
+                }
+
+                if exchangeCount > 1 {
+                    conversationHistoryLink
+                        .padding(.top, 16)
+                }
+
+                Spacer(minLength: 16)
+            }
+            .padding(.horizontal, 20)
+        }
         .frame(maxHeight: .infinity)
-        .background(cardBackground)
     }
 
-    private var emptyHistoryView: some View {
+    private var contextualHint: some View {
         VStack(spacing: 12) {
-            Image(systemName: "waveform.and.mic")
+            Image(systemName: "mic.badge.plus")
                 .font(.system(size: 34))
-                .foregroundStyle(palette.secondaryText.opacity(0.8))
+                .foregroundStyle(palette.accent.opacity(0.6))
 
-            Text(viewModel.isConnected ? "Start speaking to begin translation." : "Connect to start a live session.")
+            Text("Hold the mic and speak naturally.")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .foregroundStyle(palette.primaryText)
+                .multilineTextAlignment(.center)
+
+            Text("Auto-detects \(viewModel.language1.name) and \(viewModel.language2.name)")
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(palette.secondaryText)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 20)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.vertical, 20)
     }
 
-    private var controlSection: some View {
-        VStack(spacing: 12) {
-            if viewModel.isConnected {
-                interactionModeToggle
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+    private var latestTranscriptBlock: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let source = latestSourceTranscript {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("YOU SAID")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundStyle(palette.secondaryText)
+                        .tracking(0.5)
 
-                Group {
-                    if viewModel.interactionMode == .ptt {
-                        PTTButtonView(
-                            isActive: viewModel.isPTTActive,
-                            isSpeaking: viewModel.isSpeaking,
-                            onPressDown: { viewModel.pttPressed() },
-                            onPressUp: { viewModel.pttReleased() }
-                        )
-                    } else {
-                        VADIndicatorView(isSpeaking: viewModel.isSpeaking)
-                    }
+                    Text(source)
+                        .font(.system(size: 17, weight: .medium, design: .rounded))
+                        .foregroundStyle(palette.primaryText)
+                        .textSelection(.enabled)
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
 
-            connectButton
-        }
-        .padding(14)
-        .background(cardBackground)
-        .animation(.spring(response: 0.35, dampingFraction: 0.84), value: viewModel.isConnected)
-        .animation(.spring(response: 0.35, dampingFraction: 0.84), value: viewModel.interactionMode)
-    }
+            if let translation = latestTranslation {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(viewModel.language2.name.uppercased())
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundStyle(palette.accent)
+                        .tracking(0.5)
 
-    private var interactionModeToggle: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Text("Input Mode")
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundStyle(palette.secondaryText)
-
-            HStack(spacing: 8) {
-                ForEach(InteractionMode.allCases) { mode in
-                    let isSelected = viewModel.interactionMode == mode
-                    Button {
-                        guard viewModel.interactionMode != mode else { return }
-                        viewModel.interactionMode = mode
-                        viewModel.toggleInteractionMode()
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: mode.icon)
-                                .font(.system(size: 13, weight: .semibold))
-                            Text(mode == .ptt ? "Push" : "Auto")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        }
-                        .foregroundStyle(isSelected ? Color.white : palette.primaryText)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(isSelected ? palette.accent : palette.elevatedSurface)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(isSelected ? palette.accent.opacity(0.4) : palette.stroke.opacity(0.8), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
+                    Text(translation)
+                        .font(.system(size: 17, weight: .medium, design: .rounded))
+                        .foregroundStyle(palette.accent)
+                        .textSelection(.enabled)
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var connectButton: some View {
+    private var conversationHistoryLink: some View {
         Button {
-            Task {
-                await viewModel.toggleConnection()
-            }
+            showConversationHistory = true
+            HapticManager.selection()
         } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.2))
-                        .frame(width: 34, height: 34)
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("View conversation (\(exchangeCount) exchanges)")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+            .foregroundStyle(palette.secondaryText)
+        }
+        .buttonStyle(SaphanPressableStyle(scale: 0.97))
+    }
 
-                    if case .connecting = viewModel.connectionState {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .tint(.white)
-                            .scaleEffect(0.82)
-                    } else {
-                        Image(systemName: connectButtonIcon)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
-                }
+    // MARK: - Mic Zone
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(viewModel.connectionButtonTitle)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    Text(connectButtonSubtitle)
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .opacity(0.82)
+    private var micZone: some View {
+        VStack(spacing: 8) {
+            if viewModel.interactionMode == .vad && viewModel.isConnected {
+                VADIndicatorView(isSpeaking: viewModel.isSpeaking)
+                    .padding(.horizontal, 4)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
+            PTTButtonView(
+                isActive: viewModel.isPTTActive,
+                isSpeaking: viewModel.isSpeaking,
+                onPressDown: handlePTTPressDown,
+                onPressUp: handlePTTPressUp
+            )
+
+            secondaryControlsRow
+        }
+    }
+
+    private var secondaryControlsRow: some View {
+        HStack(spacing: 0) {
+            Button {
+                showAdvancedControls = true
+                HapticManager.selection()
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("Advanced")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(palette.secondaryText)
+            }
+            .buttonStyle(SaphanPressableStyle(scale: 0.97))
+
+            Spacer()
+
+            if viewModel.isConnected {
+                Text(viewModel.sessionDurationFormatted)
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(palette.secondaryText)
 
                 Spacer()
+
+                Button {
+                    Task {
+                        await viewModel.disconnect()
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("End")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    }
+                    .foregroundStyle(palette.danger)
+                }
+                .buttonStyle(SaphanPressableStyle(scale: 0.97))
             }
-            .padding(.horizontal, 16)
-            .frame(height: 62)
-            .background(connectButtonBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: connectShadowColor, radius: 14, y: 6)
         }
-        .buttonStyle(.plain)
-        .disabled(isConnecting)
-        .opacity(isConnecting ? 0.85 : 1.0)
+        .padding(.horizontal, 8)
     }
 
-    private var connectButtonIcon: String {
-        switch viewModel.connectionState {
-        case .connected:
-            return "stop.fill"
-        case .connecting:
-            return "arrow.clockwise"
-        case .disconnected:
-            return "play.fill"
-        case .error:
-            return "arrow.trianglehead.clockwise"
+    // MARK: - Actions
+
+    private func refreshPremiumState() {
+        if let expirationDate = PreferencesService.shared.subscriptionExpirationDate {
+            isPremium = expirationDate > Date()
+        } else {
+            isPremium = false
+        }
+
+        if !isPremium && viewModel.interactionMode != .ptt {
+            viewModel.interactionMode = .ptt
+            if viewModel.isConnected {
+                viewModel.toggleInteractionMode()
+            }
         }
     }
 
-    private var connectButtonSubtitle: String {
-        switch viewModel.connectionState {
-        case .disconnected:
-            return "Start real-time conversation"
-        case .connecting:
-            return "Preparing microphone and agent"
-        case .connected:
-            return "Tap to end this session"
-        case .error:
-            return "Try reconnecting now"
+    private func selectInteractionMode(_ mode: InteractionMode) {
+        guard mode != .vad || isPremium else {
+            showPaywall = true
+            return
+        }
+
+        guard viewModel.interactionMode != mode else { return }
+        viewModel.interactionMode = mode
+
+        if viewModel.isConnected {
+            viewModel.toggleInteractionMode()
+        }
+
+        HapticManager.selection()
+    }
+
+    private func handlePTTPressDown() {
+        isMicHeld = true
+
+        if viewModel.interactionMode != .ptt {
+            selectInteractionMode(.ptt)
+        }
+
+        if viewModel.isConnected {
+            viewModel.pttPressed()
+            return
+        }
+
+        guard viewModel.connectionState != .connecting else { return }
+
+        Task {
+            await viewModel.connect()
+            if isMicHeld && viewModel.interactionMode == .ptt {
+                viewModel.pttPressed()
+            } else if viewModel.isConnected && viewModel.interactionMode == .ptt {
+                await viewModel.disconnect()
+            }
         }
     }
 
-    @ViewBuilder
-    private var connectButtonBackground: some View {
-        switch viewModel.connectionState {
-        case .connected:
-            VoiceTranslationTheme.destructiveCTA(for: colorScheme)
-        default:
-            VoiceTranslationTheme.primaryCTA(for: colorScheme)
+    private func handlePTTPressUp() {
+        isMicHeld = false
+        viewModel.pttReleased()
+    }
+}
+
+// MARK: - Feature Row (used in Advanced sheet)
+
+private struct FeatureRow: View {
+    let icon: String
+    let text: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(tint)
+
+            Text(text)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
         }
-    }
-
-    private var connectShadowColor: Color {
-        switch viewModel.connectionState {
-        case .connected:
-            return palette.danger.opacity(0.35)
-        default:
-            return palette.accent.opacity(0.33)
-        }
-    }
-
-    private var isConnecting: Bool {
-        viewModel.connectionState == .connecting
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .fill(palette.surface)
-            .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(palette.stroke.opacity(0.85), lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.08), radius: 14, y: 7)
     }
 }
 
@@ -383,22 +455,38 @@ struct LanguagePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selectedLanguage: Language
     let title: String
+    var excludedLanguageCode: String? = nil
+    @State private var searchText = ""
+
+    private var filteredLanguages: [Language] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let available = Language.allLanguages.filter { language in
+            guard let excludedLanguageCode else { return true }
+            return language.code != excludedLanguageCode
+        }
+
+        guard !query.isEmpty else { return available }
+        return available.filter { language in
+            language.name.localizedCaseInsensitiveContains(query) ||
+            language.nativeName.localizedCaseInsensitiveContains(query) ||
+            language.code.localizedCaseInsensitiveContains(query)
+        }
+    }
 
     var body: some View {
-        NavigationView {
-            List(Language.allLanguages) { language in
+        NavigationStack {
+            List(filteredLanguages) { language in
                 Button {
                     selectedLanguage = language
+                    HapticManager.selection()
                     dismiss()
                 } label: {
                     HStack(spacing: 10) {
-                        Text(language.flag)
-                            .font(.title3)
-
                         VStack(alignment: .leading, spacing: 2) {
                             Text(language.name)
                                 .foregroundStyle(.primary)
-                            Text(language.nativeName)
+                            Text("\(language.nativeName) \u{2022} \(language.code.uppercased())")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -407,11 +495,14 @@ struct LanguagePickerSheet: View {
 
                         if language.code == selectedLanguage.code {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(SaphanTheme.brandCoral)
                         }
                     }
                 }
+                .buttonStyle(.plain)
             }
+            .listStyle(.insetGrouped)
+            .searchable(text: $searchText, prompt: "Search languages")
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -425,16 +516,154 @@ struct LanguagePickerSheet: View {
     }
 }
 
+// MARK: - Advanced Controls Sheet
+struct AdvancedTranslationControlsSheet: View {
+    let isPremium: Bool
+    @Binding var interactionMode: InteractionMode
+    @Binding var contextMode: ContextMode
+    @Binding var selectedVoice: VoiceOption
+    let onUpgradeTap: () -> Void
+    let onModeChanged: (InteractionMode) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var palette: SaphanTheme.Palette {
+        SaphanTheme.palette(for: colorScheme)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Interaction Mode")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(palette.secondaryText)
+
+                        Picker("Mode", selection: Binding(
+                            get: { interactionMode },
+                            set: { newMode in
+                                onModeChanged(newMode)
+                            }
+                        )) {
+                            Text("Push-to-Talk").tag(InteractionMode.ptt)
+                            Text("Always-On").tag(InteractionMode.vad)
+                        }
+                        .pickerStyle(.segmented)
+                        .disabled(!isPremium)
+
+                        if !isPremium {
+                            Text("Always-On requires Premium")
+                                .font(.system(size: 11, weight: .medium, design: .rounded))
+                                .foregroundStyle(palette.warning)
+                        }
+                    }
+                    .padding(14)
+                    .background(cardBackground)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Voice")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(palette.secondaryText)
+
+                        Picker("Voice", selection: $selectedVoice) {
+                            ForEach(VoiceOption.allCases) { voice in
+                                Text(voice.rawValue.capitalized)
+                                    .tag(voice)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    .padding(14)
+                    .background(cardBackground)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Tone Context")
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .foregroundStyle(palette.secondaryText)
+                            Spacer()
+                            if !isPremium {
+                                Text("Premium")
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .foregroundStyle(palette.warning)
+                            }
+                        }
+
+                        ContextModePicker(selectedMode: $contextMode, isEnabled: isPremium)
+                    }
+                    .padding(14)
+                    .background(cardBackground)
+
+                    if !isPremium {
+                        VStack(alignment: .leading, spacing: 7) {
+                            Text("Premium unlocks")
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .foregroundStyle(palette.secondaryText)
+
+                            FeatureRow(icon: "lock.fill", text: "Always-on listening", tint: palette.warning)
+                            FeatureRow(icon: "lock.fill", text: "Automatic speaker switching", tint: palette.warning)
+                            FeatureRow(icon: "lock.fill", text: "Advanced tone by context/contact", tint: palette.warning)
+                            FeatureRow(icon: "lock.fill", text: "Conversation memory", tint: palette.warning)
+                            FeatureRow(icon: "lock.fill", text: "Vocabulary personalization", tint: palette.warning)
+                            FeatureRow(icon: "lock.fill", text: "Transcript export", tint: palette.warning)
+                            FeatureRow(icon: "lock.fill", text: "Offline language packs", tint: palette.warning)
+                        }
+                        .padding(14)
+                        .background(cardBackground)
+
+                        Button {
+                            dismiss()
+                            onUpgradeTap()
+                        } label: {
+                            Text("Unlock Always-On, Memory, Export, Offline Packs")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(SaphanTheme.primaryCTA(for: colorScheme))
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(SaphanPressableStyle(scale: 0.98))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 18)
+            }
+            .navigationTitle("Advanced Controls")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(palette.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(palette.stroke.opacity(0.85), lineWidth: 1)
+            )
+    }
+}
+
 // MARK: - Voice Picker Sheet
 struct VoicePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selectedVoice: VoiceOption
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List(VoiceOption.allCases) { voice in
                 Button {
                     selectedVoice = voice
+                    HapticManager.selection()
                     dismiss()
                 } label: {
                     HStack {
@@ -452,11 +681,13 @@ struct VoicePickerSheet: View {
 
                         if voice == selectedVoice {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(SaphanTheme.brandCoral)
                         }
                     }
                 }
+                .buttonStyle(.plain)
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Select Voice")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -475,8 +706,8 @@ struct VADIndicatorView: View {
     let isSpeaking: Bool
     @Environment(\.colorScheme) private var colorScheme
 
-    private var palette: VoiceTranslationTheme.Palette {
-        VoiceTranslationTheme.palette(for: colorScheme)
+    private var palette: SaphanTheme.Palette {
+        SaphanTheme.palette(for: colorScheme)
     }
 
     var body: some View {
