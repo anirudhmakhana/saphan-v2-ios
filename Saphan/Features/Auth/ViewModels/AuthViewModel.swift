@@ -1,5 +1,9 @@
 import Foundation
+import AuthenticationServices
+import CryptoKit
+import Security
 import SwiftUI
+import Supabase
 import SaphanCore
 
 @MainActor
@@ -11,10 +15,12 @@ final class AuthViewModel: ObservableObject {
     @Published var confirmPassword = ""
     @Published var error: String?
     @Published var showSignUp = false
-    @Published var currentUser: User?
+    @Published var currentUser: SaphanCore.User?
 
     private let keychainService = KeychainService()
     private let authService = AuthService()
+    private var appleSignInNonce: String?
+    private var cachedSupabaseClient: SupabaseClient?
 
     init() {
         checkExistingSession()
@@ -133,24 +139,42 @@ final class AuthViewModel: ObservableObject {
         isLoading = false
     }
 
-    func signInWithApple() async {
-        isLoading = true
-        error = nil
+    func prepareAppleSignInRequest(_ request: ASAuthorizationAppleIDRequest) {
+        let nonce = Self.randomNonceString()
+        appleSignInNonce = nonce
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = Self.sha256(nonce)
 
         Logger.shared.log("Sign in with Apple initiated", category: .auth, level: .info)
+    }
+
+    func handleAppleSignInCompletion(_ result: Result<ASAuthorization, Error>) async {
+        isLoading = true
+        error = nil
+        defer {
+            isLoading = false
+            appleSignInNonce = nil
+        }
 
         do {
-            try await Task.sleep(nanoseconds: 1_000_000_000)
+            switch result {
+            case .failure(let signInError):
+                if let authError = signInError as? ASAuthorizationError, authError.code == .canceled {
+                    Logger.shared.log("Sign in with Apple canceled by user", category: .auth, level: .info)
+                    return
+                }
+                throw signInError
 
-            error = "Sign in with Apple will be available soon"
-
-            Logger.shared.log("Sign in with Apple not yet implemented", category: .auth, level: .warning)
+            case .success(let authorization):
+                guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+                    throw AuthError.serverError("Invalid Sign in with Apple credential.")
+                }
+                try await signInWithAppleCredential(credential)
+            }
         } catch {
             Logger.shared.log("Sign in with Apple error: \(error.localizedDescription)", category: .auth, level: .error)
             self.error = error.localizedDescription
         }
-
-        isLoading = false
     }
 
     func signInWithGoogle() async {
@@ -176,7 +200,7 @@ final class AuthViewModel: ObservableObject {
     func continueAsGuest() {
         Logger.shared.log("User continuing as guest", category: .auth, level: .info)
 
-        currentUser = User(
+        currentUser = SaphanCore.User(
             id: "guest_\(UUID().uuidString)",
             email: "guest@saphan.app",
             name: "Guest User",
@@ -206,5 +230,132 @@ final class AuthViewModel: ObservableObject {
 
     func clearError() {
         error = nil
+    }
+
+    private func signInWithAppleCredential(_ credential: ASAuthorizationAppleIDCredential) async throws {
+        guard let tokenData = credential.identityToken,
+              let idToken = String(data: tokenData, encoding: .utf8),
+              !idToken.isEmpty else {
+            throw AuthError.serverError("Sign in with Apple did not return a valid identity token.")
+        }
+
+        guard let nonce = appleSignInNonce, !nonce.isEmpty else {
+            throw AuthError.serverError("Apple sign-in nonce is missing. Please try again.")
+        }
+
+        let session = try await supabaseClient().auth.signInWithIdToken(
+            credentials: OpenIDConnectCredentials(
+                provider: .apple,
+                idToken: idToken,
+                nonce: nonce
+            )
+        )
+
+        let resolvedEmail = (session.user.email ?? credential.email ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !resolvedEmail.isEmpty else {
+            throw AuthError.serverError("Unable to retrieve your email from Apple Sign-In.")
+        }
+
+        let resolvedName = formattedName(from: credential.fullName)
+        let mappedUser = SaphanCore.User(
+            id: session.user.id.uuidString,
+            email: resolvedEmail,
+            name: resolvedName,
+            isGuest: false,
+            createdAt: session.user.createdAt,
+            updatedAt: session.user.updatedAt
+        )
+
+        if keychainService.saveAuthToken(session.accessToken) {
+            Logger.shared.log("Auth token saved to keychain", category: .auth, level: .info)
+        }
+
+        if keychainService.setRefreshToken(session.refreshToken) {
+            Logger.shared.log("Refresh token saved to keychain", category: .auth, level: .info)
+        }
+
+        if keychainService.saveUserData(mappedUser) {
+            Logger.shared.log("User data saved to keychain", category: .auth, level: .info)
+        }
+
+        currentUser = mappedUser
+        isAuthenticated = true
+        email = ""
+        password = ""
+        confirmPassword = ""
+
+        Logger.shared.log("Sign in with Apple successful", category: .auth, level: .info)
+    }
+
+    private func supabaseClient() throws -> SupabaseClient {
+        if let cachedSupabaseClient {
+            return cachedSupabaseClient
+        }
+
+        let supabaseURLString = Constants.Supabase.url.trimmingCharacters(in: .whitespacesAndNewlines)
+        let supabaseAnonKey = Constants.Supabase.anonKey.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let hasMissingConfig =
+            supabaseURLString.isEmpty ||
+            supabaseAnonKey.isEmpty ||
+            supabaseURLString.contains("YOUR_SUPABASE_URL") ||
+            supabaseAnonKey.contains("YOUR_SUPABASE_ANON_KEY") ||
+            supabaseURLString.hasPrefix("$(") ||
+            supabaseAnonKey.hasPrefix("$(")
+
+        guard !hasMissingConfig else {
+            throw AuthError.serverError(
+                "Supabase auth is not configured. Set SAPHAN_SUPABASE_URL and SAPHAN_SUPABASE_ANON_KEY."
+            )
+        }
+
+        guard let supabaseURL = URL(string: supabaseURLString) else {
+            throw AuthError.serverError("Supabase URL is invalid.")
+        }
+
+        let client = SupabaseClient(supabaseURL: supabaseURL, supabaseKey: supabaseAnonKey)
+        cachedSupabaseClient = client
+        return client
+    }
+
+    private func formattedName(from components: PersonNameComponents?) -> String? {
+        guard let components else { return nil }
+        let value = PersonNameComponentsFormatter().string(from: components)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
+    private static func sha256(_ input: String) -> String {
+        let inputData = Data(input.utf8)
+        let hashed = SHA256.hash(data: inputData)
+        return hashed.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func randomNonceString(length: Int = 32) -> String {
+        precondition(length > 0)
+        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        var result = ""
+        var remainingLength = length
+
+        while remainingLength > 0 {
+            var randoms = [UInt8](repeating: 0, count: 16)
+            let status = SecRandomCopyBytes(kSecRandomDefault, randoms.count, &randoms)
+            if status != errSecSuccess {
+                fatalError("Unable to generate nonce for Apple sign-in. OSStatus: \(status)")
+            }
+
+            randoms.forEach { random in
+                if remainingLength == 0 {
+                    return
+                }
+
+                if random < charset.count {
+                    result.append(charset[Int(random)])
+                    remainingLength -= 1
+                }
+            }
+        }
+
+        return result
     }
 }

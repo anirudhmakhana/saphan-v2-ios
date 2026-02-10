@@ -23,6 +23,10 @@ public class TranslationService {
             return cachedResponse
         }
 
+        guard let authToken = keychainService.getAuthToken(), !authToken.isEmpty else {
+            throw TranslationError.unauthorized
+        }
+
         guard let url = URL(string: "\(baseURL)/translate") else {
             throw TranslationError.networkError
         }
@@ -31,10 +35,7 @@ public class TranslationService {
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.timeoutInterval = Constants.API.timeout
-
-        if let authToken = keychainService.getAuthToken() {
-            urlRequest.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-        }
+        urlRequest.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
 
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
@@ -57,6 +58,8 @@ public class TranslationService {
             } catch {
                 throw TranslationError.serverError("Failed to decode response")
             }
+        case 404:
+            throw TranslationError.serverError("Translation endpoint is not deployed on the backend")
         case 401:
             throw TranslationError.unauthorized
         case 429:

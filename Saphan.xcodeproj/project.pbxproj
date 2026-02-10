@@ -9,11 +9,9 @@
 /* Begin PBXBuildFile section */
 		03DD9DA9BD116FB47F405722 /* Tone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B35677E02D44ABE43ADE21D /* Tone.swift */; };
 		045C34FE6F57FE024A2A5360 /* Language.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF8F534C58B232451CAA47A /* Language.swift */; };
-		094030C37147E27F5E7CD187 /* Pods_SaphanCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E5AE826729B7ABE8FCDE9B0 /* Pods_SaphanCore.framework */; };
 		0E18FFB4421AE3556AF020BB /* ActionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A9A38AF776EAE7E30832E6 /* ActionBar.swift */; };
 		13AF4B0CDB90986B66F5A61F /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3484538EFAE8BF3B4B168D8F /* NetworkMonitor.swift */; };
 		1779FCDF52460BB891474345 /* Debouncer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EC70D4FFB41104E26D8BE66 /* Debouncer.swift */; };
-		17AF2CEA3971391B6A785973 /* Pods_Saphan.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A5C2546C7EA3F2D9E4320285 /* Pods_Saphan.framework */; };
 		197CE5FAD321BA95FF2EC026 /* CacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1FBD0EE28FADB22204504B4 /* CacheService.swift */; };
 		25A9E6DDE904C6CF465F3B63 /* TopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E6BC716ABB3FB8E60EF5EA /* TopBar.swift */; };
 		264DDF54D1BEE1A2B9C48390 /* LanguageSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC5DEB1E17FC95DD1F58377 /* LanguageSelectorView.swift */; };
@@ -24,6 +22,7 @@
 		3D326830FCE19FF184FECFF8 /* SaphanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C79A46E65CA8EA6F37ADF7 /* SaphanApp.swift */; };
 		3F75268357C8F99FFE18107E /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5FCD8FD8C196481D8BD71B6 /* KeyboardView.swift */; };
 		425552337EF1BC01FCF988C8 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C202CF6A66471E91FB0680 /* RootView.swift */; };
+		438D60CA7FB60DBD79E537D0 /* Pods_Saphan.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 62C52AAEAAAEE35A87E103DE /* Pods_Saphan.framework */; };
 		43ACE8A0357C2C64CD5E88F3 /* PTTButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E06F7336149B032F51E644 /* PTTButtonView.swift */; };
 		46EC84EC70A6A367497BB6CA /* SaphanCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 5D6EAB299920E6891D28B133 /* SaphanCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		4B6ECBEB69AB9DBC4099453F /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44C8C0A9482E858128775C9A /* Constants.swift */; };
@@ -53,6 +52,7 @@
 		A929AF72C5A0CC7957456689 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90F4470523A1FCBADA6C9584 /* AppDelegate.swift */; };
 		A92D9BE21081887E213DE519 /* PreviewBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5915369996EF5560D6105313 /* PreviewBar.swift */; };
 		B097E1A0C6D7CB68F7C372A0 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74C546BCFD73706448B0DF2D /* APIError.swift */; };
+		B3D76B418D45D42F2F529763 /* Pods_SaphanCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4879A4EF329FF2CC009AEFCC /* Pods_SaphanCore.framework */; };
 		B5DA29C4E001B18C1A875440 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0B58E14356993F8105791EA /* KeyboardViewController.swift */; };
 		BC4C33FDCFFE2FB3ADA3AB4A /* ConversationHistorySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F962BBA52FBCA84B800A1C6 /* ConversationHistorySheet.swift */; };
 		C2A5CF8982A13CD71A3A5C8A /* OnboardingContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE1DBF359C4B67FA775A5292 /* OnboardingContainerView.swift */; };
@@ -155,28 +155,27 @@
 		0E56A3E1C9EEFD172009C3F1 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		14839B4886EB82493012761D /* TextTranslationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTranslationService.swift; sourceTree = "<group>"; };
 		15A10E0665A65DEB4CA32E38 /* ConnectionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionState.swift; sourceTree = "<group>"; };
+		169C5D288F0588CCF9E13CBF /* Pods-SaphanCore.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SaphanCore.debug.xcconfig"; path = "Target Support Files/Pods-SaphanCore/Pods-SaphanCore.debug.xcconfig"; sourceTree = "<group>"; };
 		23B1136224DA8BBC04949653 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		257AF2AF869E1D26524B64D1 /* SaphanKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SaphanKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2949E5889DB2AA77376AC6A0 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		2AC0142E75B3C85E00E00A67 /* Saphan.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Saphan.entitlements; sourceTree = "<group>"; };
-		2D969C2D57BC09491EF71C3F /* Pods-SaphanCore.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SaphanCore.release.xcconfig"; path = "Target Support Files/Pods-SaphanCore/Pods-SaphanCore.release.xcconfig"; sourceTree = "<group>"; };
 		2DDCD9C82268C63CA54E5793 /* Saphan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Saphan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3484538EFAE8BF3B4B168D8F /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		352D898EC130B56F360F48C3 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		3567DB415B16E52877B68055 /* VoiceOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOption.swift; sourceTree = "<group>"; };
-		39831A3FF43FFBE002009CA3 /* Pods-Saphan.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Saphan.release.xcconfig"; path = "Target Support Files/Pods-Saphan/Pods-Saphan.release.xcconfig"; sourceTree = "<group>"; };
-		3BD4679D16D880A8C1BCAD04 /* Pods-SaphanCore.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SaphanCore.debug.xcconfig"; path = "Target Support Files/Pods-SaphanCore/Pods-SaphanCore.debug.xcconfig"; sourceTree = "<group>"; };
-		424EA2E95EB2A6B0EFA16FFD /* Pods-Saphan.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Saphan.debug.xcconfig"; path = "Target Support Files/Pods-Saphan/Pods-Saphan.debug.xcconfig"; sourceTree = "<group>"; };
 		44C8C0A9482E858128775C9A /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		4879A4EF329FF2CC009AEFCC /* Pods_SaphanCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SaphanCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C5D920A83B21250AB52F2EE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4D664BC3AC1FAB969BB2164A /* AuthContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthContainerView.swift; sourceTree = "<group>"; };
-		4E5AE826729B7ABE8FCDE9B0 /* Pods_SaphanCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SaphanCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4EC70D4FFB41104E26D8BE66 /* Debouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Debouncer.swift; sourceTree = "<group>"; };
 		54FF010D27095AB3049536E1 /* AudioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionManager.swift; sourceTree = "<group>"; };
 		5915369996EF5560D6105313 /* PreviewBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewBar.swift; sourceTree = "<group>"; };
+		5C68C05F25264463D666374E /* Pods-Saphan.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Saphan.debug.xcconfig"; path = "Target Support Files/Pods-Saphan/Pods-Saphan.debug.xcconfig"; sourceTree = "<group>"; };
 		5D6EAB299920E6891D28B133 /* SaphanCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SaphanCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		5F962BBA52FBCA84B800A1C6 /* ConversationHistorySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationHistorySheet.swift; sourceTree = "<group>"; };
 		6161E4D7CE8A4133D2E31D62 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		62C52AAEAAAEE35A87E103DE /* Pods_Saphan.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Saphan.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		644BCFC3D5BFEC149F3F98FC /* SaphanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SaphanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		74C546BCFD73706448B0DF2D /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
 		7A10484687EC5766B5541FD7 /* VoiceTranslationTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceTranslationTheme.swift; sourceTree = "<group>"; };
@@ -184,13 +183,13 @@
 		7BD90EE712879BBE2E9EC14A /* SessionTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerView.swift; sourceTree = "<group>"; };
 		8389C22EA9B2A310BCA1E27E /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		8878FDC1D52B4A780117CDFB /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
+		8C035FBC3F506103009AA016 /* Pods-SaphanCore.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SaphanCore.release.xcconfig"; path = "Target Support Files/Pods-SaphanCore/Pods-SaphanCore.release.xcconfig"; sourceTree = "<group>"; };
 		8D9B352621BD6EAFFBFCBC32 /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		90F4470523A1FCBADA6C9584 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		92C8A5CC839577C106BEEC2E /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		98BC1C3DA939A8DD5B9D3253 /* ConversationBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationBubbleView.swift; sourceTree = "<group>"; };
 		9B748DBB72749F3DF3F74040 /* ContextModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextModePicker.swift; sourceTree = "<group>"; };
 		A39B14979F050469CF9C5300 /* VoiceTranslationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceTranslationView.swift; sourceTree = "<group>"; };
-		A5C2546C7EA3F2D9E4320285 /* Pods_Saphan.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Saphan.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A5FCD8FD8C196481D8BD71B6 /* KeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardView.swift; sourceTree = "<group>"; };
 		A874CC7A8162D901CA4AF574 /* ConversationItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationItem.swift; sourceTree = "<group>"; };
 		AED1DD49B671CE00E2503A3E /* TranslationResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationResponse.swift; sourceTree = "<group>"; };
@@ -215,6 +214,7 @@
 		EEC5DEB1E17FC95DD1F58377 /* LanguageSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSelectorView.swift; sourceTree = "<group>"; };
 		F1920D5CE3FF0878462C06DA /* KeyboardButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardButton.swift; sourceTree = "<group>"; };
 		F4635B4AA396D720A77FCD50 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		F5D7B7EA85655163BBB63023 /* Pods-Saphan.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Saphan.release.xcconfig"; path = "Target Support Files/Pods-Saphan/Pods-Saphan.release.xcconfig"; sourceTree = "<group>"; };
 		FA9DF09F034BAF06EB6D6402 /* WebRTCRealtimeSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCRealtimeSession.swift; sourceTree = "<group>"; };
 		FE1DBF359C4B67FA775A5292 /* OnboardingContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingContainerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -228,15 +228,15 @@
 				58F874EA26881D7EF2954390 /* Supabase in Frameworks */,
 				5794FF660541E24B892194D1 /* RevenueCat in Frameworks */,
 				3C03E438BA311F62C1FB9CB2 /* GoogleSignIn in Frameworks */,
-				17AF2CEA3971391B6A785973 /* Pods_Saphan.framework in Frameworks */,
+				438D60CA7FB60DBD79E537D0 /* Pods_Saphan.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		3CCA2DE1A2169D2B9EBE9957 /* Frameworks */ = {
+		3650E52AE006B1805434485C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				094030C37147E27F5E7CD187 /* Pods_SaphanCore.framework in Frameworks */,
+				B3D76B418D45D42F2F529763 /* Pods_SaphanCore.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -265,6 +265,17 @@
 				CBCA515FB945F69E9A6C7E1A /* AuthViewModel.swift */,
 			);
 			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		09329D660632987DEFBD0D1D /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				5C68C05F25264463D666374E /* Pods-Saphan.debug.xcconfig */,
+				F5D7B7EA85655163BBB63023 /* Pods-Saphan.release.xcconfig */,
+				169C5D288F0588CCF9E13CBF /* Pods-SaphanCore.debug.xcconfig */,
+				8C035FBC3F506103009AA016 /* Pods-SaphanCore.release.xcconfig */,
+			);
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		099875A94FFF068C2CA7BA4C /* Subscription */ = {
@@ -337,15 +348,6 @@
 				77234219FB8DEA6CEF6DCEB8 /* ViewModels */,
 			);
 			path = SaphanTests;
-			sourceTree = "<group>";
-		};
-		37FE6478043AB0755E5346F9 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				A5C2546C7EA3F2D9E4320285 /* Pods_Saphan.framework */,
-				4E5AE826729B7ABE8FCDE9B0 /* Pods_SaphanCore.framework */,
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		3A05937F06B2AE80C0EE29B5 /* Translation */ = {
@@ -447,8 +449,8 @@
 				13158E66591DB680635C4A12 /* SaphanKeyboard */,
 				34748D8CC78DD257B3EBCCF7 /* SaphanTests */,
 				FDF7F5DCBF92548CB9E74109 /* Products */,
-				9BF48F51B7B45FFBC53BA4C0 /* Pods */,
-				37FE6478043AB0755E5346F9 /* Frameworks */,
+				09329D660632987DEFBD0D1D /* Pods */,
+				B7D8427197E8F4A7F07961D4 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -483,17 +485,6 @@
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
-		9BF48F51B7B45FFBC53BA4C0 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				424EA2E95EB2A6B0EFA16FFD /* Pods-Saphan.debug.xcconfig */,
-				39831A3FF43FFBE002009CA3 /* Pods-Saphan.release.xcconfig */,
-				3BD4679D16D880A8C1BCAD04 /* Pods-SaphanCore.debug.xcconfig */,
-				2D969C2D57BC09491EF71C3F /* Pods-SaphanCore.release.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
 		A1C2E9D8A00AA9A8D0993E11 /* Services */ = {
 			isa = PBXGroup;
 			children = (
@@ -517,6 +508,15 @@
 			children = (
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		B7D8427197E8F4A7F07961D4 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				62C52AAEAAAEE35A87E103DE /* Pods_Saphan.framework */,
+				4879A4EF329FF2CC009AEFCC /* Pods_SaphanCore.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		B8FC362F898A13562C3626F9 /* Navigation */ = {
@@ -728,9 +728,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 93DB2BD0D20281421F5C41DA /* Build configuration list for PBXNativeTarget "SaphanCore" */;
 			buildPhases = (
-				707BFCF791694F9B416CF3FC /* [CP] Check Pods Manifest.lock */,
+				CEB68798378B08677C4AF0ED /* [CP] Check Pods Manifest.lock */,
 				CD82C8EC6C879F8109060FDD /* Sources */,
-				3CCA2DE1A2169D2B9EBE9957 /* Frameworks */,
+				3650E52AE006B1805434485C /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -745,12 +745,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = CD0B82F8A9C8C08038BA7E3C /* Build configuration list for PBXNativeTarget "Saphan" */;
 			buildPhases = (
-				12A23DC3CF43FA54DEDCC831 /* [CP] Check Pods Manifest.lock */,
+				ED9BA5D0120C0602B5C9FB2D /* [CP] Check Pods Manifest.lock */,
 				A973067D446651AD825AB316 /* Sources */,
 				17B4EA0E5BE2CA4A5BDF42FA /* Frameworks */,
 				57C1C566DD61A2838B1C4E0C /* Embed Foundation Extensions */,
 				A683DC080D6BD508EC216867 /* Embed Frameworks */,
-				5264320DB07C90422E095153 /* [CP] Embed Pods Frameworks */,
+				16965715EBE4170900085204 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -805,29 +805,7 @@
 /* End PBXProject section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		12A23DC3CF43FA54DEDCC831 /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-Saphan-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		5264320DB07C90422E095153 /* [CP] Embed Pods Frameworks */ = {
+		16965715EBE4170900085204 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -848,7 +826,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Saphan/Pods-Saphan-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		707BFCF791694F9B416CF3FC /* [CP] Check Pods Manifest.lock */ = {
+		CEB68798378B08677C4AF0ED /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -864,6 +842,28 @@
 			);
 			outputPaths = (
 				"$(DERIVED_FILE_DIR)/Pods-SaphanCore-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		ED9BA5D0120C0602B5C9FB2D /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-Saphan-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -988,7 +988,7 @@
 /* Begin XCBuildConfiguration section */
 		0F8D7F31F19A0FA00110F9DD /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 3BD4679D16D880A8C1BCAD04 /* Pods-SaphanCore.debug.xcconfig */;
+			baseConfigurationReference = 169C5D288F0588CCF9E13CBF /* Pods-SaphanCore.debug.xcconfig */;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -1107,7 +1107,7 @@
 		};
 		6041B59253C03404E4C3A1EA /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 424EA2E95EB2A6B0EFA16FFD /* Pods-Saphan.debug.xcconfig */;
+			baseConfigurationReference = 5C68C05F25264463D666374E /* Pods-Saphan.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Saphan/Supporting/Saphan.entitlements;
@@ -1209,7 +1209,7 @@
 		};
 		9E07C7BAAC11F5C3FB0DCA21 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2D969C2D57BC09491EF71C3F /* Pods-SaphanCore.release.xcconfig */;
+			baseConfigurationReference = 8C035FBC3F506103009AA016 /* Pods-SaphanCore.release.xcconfig */;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -1235,7 +1235,7 @@
 		};
 		A7B211819E1F48A66ED5F77B /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 39831A3FF43FFBE002009CA3 /* Pods-Saphan.release.xcconfig */;
+			baseConfigurationReference = F5D7B7EA85655163BBB63023 /* Pods-Saphan.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Saphan/Supporting/Saphan.entitlements;

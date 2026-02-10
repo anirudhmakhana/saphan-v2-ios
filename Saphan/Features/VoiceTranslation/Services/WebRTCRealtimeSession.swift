@@ -18,6 +18,9 @@ final class WebRTCRealtimeSession: NSObject, ObservableObject {
     @Published private(set) var connectionState: ConnectionState = .disconnected
     @Published private(set) var history: [ConversationItem] = []
     @Published private(set) var isSpeaking = false
+    @Published private(set) var isTranslating = false
+    @Published private(set) var isOutputSpeaking = false
+    @Published private(set) var isCapturing = false
 
     // MARK: - Private Properties
 
@@ -55,7 +58,7 @@ final class WebRTCRealtimeSession: NSObject, ObservableObject {
     // MARK: - Public Methods
 
     /// Connect to OpenAI Realtime API via WebRTC
-    func connect() async throws {
+    func connect(initialTurnDetection: TurnDetectionConfig = .defaultServerVAD) async throws {
         logger.log("Starting WebRTC Realtime connection")
 
         // Update state
@@ -80,7 +83,7 @@ final class WebRTCRealtimeSession: NSObject, ObservableObject {
         try await performSDPHandshake()
 
         // Step 4: Configure session
-        try await configureRealtimeSession()
+        try await configureRealtimeSession(initialTurnDetection: initialTurnDetection)
 
         // Connection successful
         connectionState = .connected
@@ -113,6 +116,9 @@ final class WebRTCRealtimeSession: NSObject, ObservableObject {
         ephemeralToken = nil
         connectionState = .disconnected
         isSpeaking = false
+        isTranslating = false
+        isOutputSpeaking = false
+        isCapturing = false
 
         logger.log("WebRTC session disconnected")
     }
@@ -121,6 +127,7 @@ final class WebRTCRealtimeSession: NSObject, ObservableObject {
     func muteMicrophone() {
         #if canImport(WebRTC)
         audioTrack?.isEnabled = false
+        isCapturing = false
         logger.log("Microphone muted")
         #endif
     }
@@ -129,8 +136,56 @@ final class WebRTCRealtimeSession: NSObject, ObservableObject {
     func unmuteMicrophone() {
         #if canImport(WebRTC)
         audioTrack?.isEnabled = true
+        isCapturing = true
         logger.log("Microphone unmuted")
         #endif
+    }
+
+    /// Begin a PTT capture turn. Audio capture is active, but translation is not committed yet.
+    func beginCaptureForPTT() {
+        guard connectionState == .connected else { return }
+        isTranslating = false
+        isOutputSpeaking = false
+        unmuteMicrophone()
+    }
+
+    /// End PTT capture and commit the turn for translation.
+    func endCaptureAndCommitTurn() async throws {
+        guard connectionState == .connected else { return }
+        guard isCapturing else { return }
+
+        muteMicrophone()
+        try await sendClientEvent(type: "input_audio_buffer.commit")
+        isTranslating = true
+        try await sendClientEvent(type: "response.create")
+    }
+
+    /// Cancel the in-flight capture/translation/output turn immediately.
+    func cancelCurrentTurn() async {
+        guard connectionState == .connected else { return }
+        muteMicrophone()
+        isTranslating = false
+        isOutputSpeaking = false
+
+        do {
+            try await sendClientEvent(type: "response.cancel")
+            try await sendClientEvent(type: "input_audio_buffer.clear")
+        } catch {
+            logger.error("Failed to cancel current turn: \(error)")
+        }
+    }
+
+    /// Stop assistant audio output immediately.
+    func stopOutput() async {
+        guard connectionState == .connected else { return }
+        isOutputSpeaking = false
+        isTranslating = false
+
+        do {
+            try await sendClientEvent(type: "response.cancel")
+        } catch {
+            logger.error("Failed to stop output: \(error)")
+        }
     }
 
     /// Update session configuration
@@ -144,17 +199,13 @@ final class WebRTCRealtimeSession: NSObject, ObservableObject {
     }
 
     /// Update the agent configuration
-    func updateAgent(_ newAgent: RealtimeAgent) {
+    func updateAgent(_ newAgent: RealtimeAgent, turnDetection: TurnDetectionConfig) {
         self.agent = newAgent
 
         // Send updated instructions if connected
         if case .connected = connectionState {
             Task {
-                try? await updateSessionConfig(turnDetection: .serverVAD(
-                    threshold: 0.5,
-                    prefixPaddingMs: 300,
-                    silenceDurationMs: 500
-                ))
+                try? await updateSessionConfig(turnDetection: turnDetection)
             }
         }
     }
@@ -354,18 +405,14 @@ final class WebRTCRealtimeSession: NSObject, ObservableObject {
 
     // MARK: - Private Methods - Session Configuration
 
-    private func configureRealtimeSession() async throws {
+    private func configureRealtimeSession(initialTurnDetection: TurnDetectionConfig) async throws {
         #if canImport(WebRTC)
         // Wait for actual RTCDataChannel open event instead of a fixed sleep.
         try await waitForDataChannelOpen()
         #endif
 
         // Send session.update with instructions
-        try await updateSessionConfig(turnDetection: .serverVAD(
-            threshold: 0.5,
-            prefixPaddingMs: 300,
-            silenceDurationMs: 500
-        ))
+        try await updateSessionConfig(turnDetection: initialTurnDetection)
     }
 
     // MARK: - Private Methods - Control Messages
@@ -391,6 +438,25 @@ final class WebRTCRealtimeSession: NSObject, ObservableObject {
         #endif
     }
 
+    private func sendClientEvent(type: String) async throws {
+        #if canImport(WebRTC)
+        try await sendClientEvent(payload: ["type": type])
+        #endif
+    }
+
+    private func sendClientEvent(payload: [String: Any]) async throws {
+        #if canImport(WebRTC)
+        guard let dataChannel = dataChannel, dataChannel.readyState == .open else {
+            throw WebRTCError.dataChannelNotOpen
+        }
+
+        let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+        let buffer = RTCDataBuffer(data: data, isBinary: false)
+        dataChannel.sendData(buffer)
+        logger.log("Sent client event: \(payload["type"] as? String ?? "unknown")")
+        #endif
+    }
+
     private func handleRealtimeMessage(_ data: Data) {
         do {
             let decoder = JSONDecoder()
@@ -408,8 +474,8 @@ final class WebRTCRealtimeSession: NSObject, ObservableObject {
                 }
 
             case "response.audio.delta":
-                // Audio data received - handled by WebRTC audio track
-                break
+                isTranslating = false
+                isOutputSpeaking = true
 
             case "response.audio_transcript.delta":
                 if let delta = message.delta, let itemId = message.itemId {
@@ -427,9 +493,19 @@ final class WebRTCRealtimeSession: NSObject, ObservableObject {
             case "input_audio_buffer.speech_stopped":
                 isSpeaking = false
 
+            case "response.created":
+                isTranslating = true
+
+            case "response.done", "response.completed", "response.audio.done", "output_audio_buffer.stopped":
+                isTranslating = false
+                isOutputSpeaking = false
+
             case "error":
                 if let error = message.error {
                     logger.error("Realtime API error: \(error.message ?? "Unknown error")")
+                    isTranslating = false
+                    isOutputSpeaking = false
+                    isCapturing = false
                     connectionState = .error(error.message ?? "Unknown error")
                 }
 
@@ -635,6 +711,10 @@ struct TurnDetectionConfig: Codable {
             prefixPaddingMs: prefixPaddingMs,
             silenceDurationMs: silenceDurationMs
         )
+    }
+
+    static var defaultServerVAD: TurnDetectionConfig {
+        serverVAD(threshold: 0.5, prefixPaddingMs: 300, silenceDurationMs: 500)
     }
 
     static var disabled: TurnDetectionConfig {

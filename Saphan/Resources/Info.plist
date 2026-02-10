@@ -6,6 +6,8 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Saphan</string>
+	<key>AppIdentifierPrefix</key>
+	<string>$(AppIdentifierPrefix)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -24,6 +26,10 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Saphan needs microphone access for real-time voice translation.</string>
+	<key>SAPHAN_SUPABASE_ANON_KEY</key>
+	<string>$(SAPHAN_SUPABASE_ANON_KEY)</string>
+	<key>SAPHAN_SUPABASE_URL</key>
+	<string>$(SAPHAN_SUPABASE_URL)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -422,6 +422,77 @@ enum Tone: String, CaseIterable {
 
 ---
 
+## App Store Readiness Tracker (2026-02-10)
+
+### Recommended execution order (one step at a time)
+
+1. **Authentication hard blockers first**
+   - Implement Sign in with Apple end-to-end
+   - Implement Sign in with Google end-to-end
+   - Add account linking/conflict handling between email/password, Apple, and Google
+   - Reason: auth buttons currently exist in UI but are not functional; this is a direct review risk and is also needed for clean subscription identity mapping
+
+2. **Subscriptions and paywall second**
+   - Replace mock subscription logic with RevenueCat (`offerings`, `purchase`, `restore`, entitlement checks)
+   - Gate premium features by live entitlement state (not local expiration date only)
+   - Validate sandbox purchase/restore/cancel flows
+   - Reason: current paywall and restore are simulated, not production IAP
+
+3. **Submission compliance package third**
+   - Add/verify Sign in with Apple capability in target settings
+   - Configure Google URL scheme/callback handling
+   - Finalize App Store Connect IAP products/subscription group metadata
+   - Complete privacy disclosures and policy URLs (Terms URL currently needs verification/fix)
+   - Add in-app account deletion flow
+
+4. **Release QA and App Review dry run**
+   - Full manual QA matrix on real devices
+   - Edge-case testing (network loss, denied permissions, interrupted purchases, logout/login relink, restore on new device)
+   - Prepare App Review notes + test credentials + reproduction steps for keyboard full-access flow
+
+### Task checklist
+
+#### A. Authentication
+- [x] A1. Sign in with Apple end-to-end implementation (app code)
+- [ ] A2. Sign in with Google end-to-end implementation
+- [ ] A3. OAuth callback handling and URL scheme configuration
+- [ ] A4. Account linking and conflict resolution UX
+- [ ] A5. Auth error taxonomy and user-facing retry states
+
+#### A1 follow-up (external configuration)
+- [ ] A1.1 Enable Apple provider in Supabase Auth settings
+- [ ] A1.2 Enable Sign in with Apple capability for `com.krsnalabs.saphan` in Apple Developer portal
+- [ ] A1.3 Regenerate/download provisioning profile containing `com.apple.developer.applesignin`
+- [ ] A1.4 Set `SAPHAN_SUPABASE_URL` and `SAPHAN_SUPABASE_ANON_KEY` in build settings/CI secrets
+- [ ] A1.5 Validate Sign in with Apple on physical device (first sign-in + returning user)
+
+#### B. Subscription / RevenueCat
+- [ ] B1. RevenueCat SDK configure/initialize with real API key
+- [ ] B2. Offerings fetch and paywall wiring
+- [ ] B3. Purchase flow wiring
+- [ ] B4. Restore purchases flow wiring
+- [ ] B5. Entitlement-based premium gating across app
+- [ ] B6. Sandbox validation for monthly/yearly products
+
+#### C. Compliance & App Store Connect
+- [ ] C1. Subscription products configured and submitted in App Store Connect
+- [ ] C2. App metadata complete (description, keywords, screenshots, support URL)
+- [ ] C3. Privacy policy and Terms links validated in production
+- [ ] C4. Privacy disclosures completed in App Store Connect
+- [ ] C5. In-app account deletion available and tested
+- [ ] C6. Reviewer notes prepared (demo account + test steps)
+
+#### D. Final QA
+- [ ] D1. Fresh install flow validation
+- [ ] D2. Upgrade-from-previous-build validation
+- [ ] D3. Auth + subscription cross-state regression pass
+- [ ] D4. Keyboard extension full-access + token-sharing validation
+- [ ] D5. Release candidate signoff
+
+### Current focus
+
+- [ ] **NOW: A1.1-A1.5 external config + device validation, then move to A2**
+
 ## Notes
 
 - Backend (voice-translator-backend) remains Node.js - no changes needed

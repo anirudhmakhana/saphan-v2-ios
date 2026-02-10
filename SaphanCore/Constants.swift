@@ -23,8 +23,37 @@ public enum Constants {
 
     // Supabase configuration
     public enum Supabase {
-        public static let url = "YOUR_SUPABASE_URL"
-        public static let anonKey = "YOUR_SUPABASE_ANON_KEY"
+        public static let url: String = {
+            #if DEBUG
+            if let override = ProcessInfo.processInfo.environment["SAPHAN_SUPABASE_URL"],
+               !override.isEmpty {
+                return override
+            }
+            #endif
+
+            if let plistValue = Bundle.main.object(forInfoDictionaryKey: "SAPHAN_SUPABASE_URL") as? String,
+               !plistValue.isEmpty {
+                return plistValue
+            }
+
+            return "YOUR_SUPABASE_URL"
+        }()
+
+        public static let anonKey: String = {
+            #if DEBUG
+            if let override = ProcessInfo.processInfo.environment["SAPHAN_SUPABASE_ANON_KEY"],
+               !override.isEmpty {
+                return override
+            }
+            #endif
+
+            if let plistValue = Bundle.main.object(forInfoDictionaryKey: "SAPHAN_SUPABASE_ANON_KEY") as? String,
+               !plistValue.isEmpty {
+                return plistValue
+            }
+
+            return "YOUR_SUPABASE_ANON_KEY"
+        }()
     }
 
     // RevenueCat configuration

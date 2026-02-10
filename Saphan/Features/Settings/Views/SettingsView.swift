@@ -36,16 +36,6 @@ struct SettingsView: View {
                     .tag(voice)
                 }
             }
-
-            Picker("Default Context Mode", selection: $viewModel.defaultContextMode) {
-                ForEach(viewModel.availableContextModes, id: \.self) { mode in
-                    HStack {
-                        Image(systemName: contextModeIcon(mode))
-                        Text(mode.name)
-                    }
-                    .tag(mode)
-                }
-            }
         } header: {
             Label("Voice Settings", systemImage: "mic.fill")
         }
@@ -90,14 +80,8 @@ struct SettingsView: View {
             Toggle(isOn: $viewModel.soundEffectsEnabled) {
                 Label("Sound Effects", systemImage: "speaker.wave.2.fill")
             }
-
-            Toggle(isOn: $viewModel.autoTranslateEnabled) {
-                Label("Auto-Translate", systemImage: "arrow.triangle.2.circlepath")
-            }
         } header: {
             Label("General", systemImage: "gearshape.fill")
-        } footer: {
-            Text("Auto-translate starts translation immediately after you stop speaking")
         }
     }
 
@@ -220,10 +204,6 @@ struct SettingsView: View {
             Label("Danger Zone", systemImage: "exclamationmark.triangle.fill")
                 .foregroundColor(.red)
         }
-    }
-
-    private func contextModeIcon(_ mode: ContextMode) -> String {
-        mode.icon
     }
 
     private func toneIcon(_ tone: Tone) -> String {

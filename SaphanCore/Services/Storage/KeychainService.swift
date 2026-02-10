@@ -3,9 +3,11 @@ import Security
 
 public class KeychainService {
     private let serviceName: String
+    private let accessGroup: String?
 
-    public init(serviceName: String = Constants.bundleID) {
+    public init(serviceName: String = Constants.bundleID, accessGroup: String? = nil) {
         self.serviceName = serviceName
+        self.accessGroup = accessGroup ?? KeychainService.defaultAccessGroup()
     }
 
     private enum Keys {
@@ -80,19 +82,7 @@ public class KeychainService {
 
     private func save(key: String, value: String) -> Bool {
         guard let data = value.data(using: .utf8) else { return false }
-
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName,
-            kSecAttrAccount as String: key,
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
-        ]
-
-        SecItemDelete(query as CFDictionary)
-
-        let status = SecItemAdd(query as CFDictionary, nil)
-        return status == errSecSuccess
+        return saveData(key: key, value: data)
     }
 
     private func retrieve(key: String) -> String? {
@@ -101,46 +91,93 @@ public class KeychainService {
     }
 
     private func delete(key: String) -> Bool {
-        let query: [String: Any] = [
+        let primaryStatus = SecItemDelete(baseQuery(for: key, includeAccessGroup: true) as CFDictionary)
+        let fallbackStatus = SecItemDelete(baseQuery(for: key, includeAccessGroup: false) as CFDictionary)
+
+        let primaryOK = primaryStatus == errSecSuccess || primaryStatus == errSecItemNotFound || accessGroup == nil
+        let fallbackOK = fallbackStatus == errSecSuccess || fallbackStatus == errSecItemNotFound
+
+        return primaryOK && fallbackOK
+    }
+
+    private func saveData(key: String, value: Data) -> Bool {
+        // Remove both shared and legacy entries before saving.
+        _ = SecItemDelete(baseQuery(for: key, includeAccessGroup: true) as CFDictionary)
+        _ = SecItemDelete(baseQuery(for: key, includeAccessGroup: false) as CFDictionary)
+
+        let primaryStatus = SecItemAdd(saveQuery(for: key, value: value, includeAccessGroup: true) as CFDictionary, nil)
+        if primaryStatus == errSecSuccess {
+            return true
+        }
+
+        // Fallback for environments where shared group resolution is unavailable.
+        let fallbackStatus = SecItemAdd(saveQuery(for: key, value: value, includeAccessGroup: false) as CFDictionary, nil)
+        return fallbackStatus == errSecSuccess
+    }
+
+    private func retrieveData(key: String) -> Data? {
+        var result: AnyObject?
+        let primaryStatus = SecItemCopyMatching(readQuery(for: key, includeAccessGroup: true) as CFDictionary, &result)
+
+        if primaryStatus == errSecSuccess, let data = result as? Data {
+            return data
+        }
+
+        result = nil
+        let fallbackStatus = SecItemCopyMatching(readQuery(for: key, includeAccessGroup: false) as CFDictionary, &result)
+        guard fallbackStatus == errSecSuccess, let data = result as? Data else {
+            return nil
+        }
+
+        // Opportunistic migration to shared keychain so extensions can read tokens.
+        if accessGroup != nil {
+            _ = saveData(key: key, value: data)
+        }
+
+        return data
+    }
+
+    private static func defaultAccessGroup() -> String? {
+        if let prefix = Bundle.main.object(forInfoDictionaryKey: "AppIdentifierPrefix") as? String, !prefix.isEmpty {
+            let normalizedPrefix = prefix.hasSuffix(".") ? prefix : "\(prefix)."
+            return "\(normalizedPrefix)\(Constants.bundleID)"
+        }
+
+        if let prefixes = Bundle.main.object(forInfoDictionaryKey: "ApplicationIdentifierPrefix") as? [String],
+           let prefix = prefixes.first,
+           !prefix.isEmpty {
+            let normalizedPrefix = prefix.hasSuffix(".") ? prefix : "\(prefix)."
+            return "\(normalizedPrefix)\(Constants.bundleID)"
+        }
+
+        return nil
+    }
+
+    private func baseQuery(for key: String, includeAccessGroup: Bool) -> [String: Any] {
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
             kSecAttrAccount as String: key
         ]
 
-        let status = SecItemDelete(query as CFDictionary)
-        return status == errSecSuccess || status == errSecItemNotFound
-    }
-
-    private func saveData(key: String, value: Data) -> Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName,
-            kSecAttrAccount as String: key,
-            kSecValueData as String: value,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
-        ]
-
-        SecItemDelete(query as CFDictionary)
-        let status = SecItemAdd(query as CFDictionary, nil)
-        return status == errSecSuccess
-    }
-
-    private func retrieveData(key: String) -> Data? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName,
-            kSecAttrAccount as String: key,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess, let data = result as? Data else {
-            return nil
+        if includeAccessGroup, let accessGroup {
+            query[kSecAttrAccessGroup as String] = accessGroup
         }
 
-        return data
+        return query
+    }
+
+    private func saveQuery(for key: String, value: Data, includeAccessGroup: Bool) -> [String: Any] {
+        var query = baseQuery(for: key, includeAccessGroup: includeAccessGroup)
+        query[kSecValueData as String] = value
+        query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        return query
+    }
+
+    private func readQuery(for key: String, includeAccessGroup: Bool) -> [String: Any] {
+        var query = baseQuery(for: key, includeAccessGroup: includeAccessGroup)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        return query
     }
 }

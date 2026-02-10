@@ -1,13 +1,11 @@
 import SwiftUI
 import SaphanCore
 
-/// Mic-first translation screen with 3-zone split layout:
-/// top bar (fixed), transcript (scrollable), mic zone (fixed at bottom).
+/// Mic-first translation screen with fixed top and bottom zones.
 struct VoiceTranslationView: View {
     @StateObject private var viewModel = VoiceTranslationViewModel()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
-    @State private var isMicHeld = false
     @State private var isPremium = false
     @State private var showPaywall = false
     @State private var showAdvancedControls = false
@@ -40,8 +38,6 @@ struct VoiceTranslationView: View {
         viewModel.history.filter { $0.role == .user }.count
     }
 
-    // MARK: - Body
-
     var body: some View {
         ZStack {
             SaphanTheme.backgroundGradient(for: colorScheme)
@@ -51,7 +47,7 @@ struct VoiceTranslationView: View {
                 topBar
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
-                    .padding(.bottom, 6)
+                    .padding(.bottom, 8)
 
                 transcriptZone
 
@@ -61,6 +57,7 @@ struct VoiceTranslationView: View {
             }
         }
         .animation(SaphanMotion.smoothSpring, value: viewModel.connectionState)
+        .animation(SaphanMotion.smoothSpring, value: viewModel.micTurnState)
         .animation(SaphanMotion.smoothSpring, value: viewModel.history.count)
         .sheet(isPresented: $viewModel.showLanguage2Picker) {
             LanguagePickerSheet(
@@ -71,21 +68,22 @@ struct VoiceTranslationView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $viewModel.showVoicePicker) {
-            VoicePickerSheet(selectedVoice: $viewModel.selectedVoice)
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-        }
         .sheet(isPresented: $showAdvancedControls) {
             AdvancedTranslationControlsSheet(
                 isPremium: isPremium,
-                interactionMode: $viewModel.interactionMode,
+                preferredLanguage: Binding(
+                    get: { viewModel.language1 },
+                    set: { viewModel.updateLanguage1($0) }
+                ),
+                targetLanguageCode: viewModel.language2.code,
+                audioOutputPreference: Binding(
+                    get: { viewModel.audioOutputPreference },
+                    set: { viewModel.setAudioOutputPreference($0) }
+                ),
+                currentOutputDeviceName: viewModel.currentOutputDeviceName,
                 contextMode: $viewModel.contextMode,
                 selectedVoice: $viewModel.selectedVoice,
-                onUpgradeTap: { showPaywall = true },
-                onModeChanged: { newMode in
-                    selectInteractionMode(newMode)
-                }
+                onUpgradeTap: { showPaywall = true }
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
@@ -93,9 +91,7 @@ struct VoiceTranslationView: View {
         .sheet(isPresented: $showConversationHistory) {
             ConversationHistorySheet(
                 history: viewModel.history,
-                onClear: {
-                    viewModel.clearHistory()
-                }
+                onClear: { viewModel.clearHistory() }
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -120,22 +116,12 @@ struct VoiceTranslationView: View {
                 }
             } else if newPhase == .active {
                 refreshPremiumState()
-            }
-        }
-        .onChange(of: viewModel.connectionState) { newState in
-            if newState == .connected &&
-                isMicHeld &&
-                viewModel.interactionMode == .ptt &&
-                !viewModel.isPTTActive {
-                viewModel.pttPressed()
-            }
-
-            if newState != .connected {
-                isMicHeld = false
+                viewModel.warmupRealtimeIfNeeded()
             }
         }
         .onAppear {
             refreshPremiumState()
+            viewModel.warmupRealtimeIfNeeded()
         }
     }
 
@@ -152,12 +138,15 @@ struct VoiceTranslationView: View {
                 HapticManager.selection()
             } label: {
                 HStack(spacing: 6) {
-                    Text(viewModel.language2.flag)
-                        .font(.system(size: 18))
+                    Text("Target:")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(palette.secondaryText)
+
                     Text(viewModel.language2.name)
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundStyle(palette.accent)
                         .lineLimit(1)
+
                     Image(systemName: "chevron.down")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(palette.secondaryText)
@@ -180,31 +169,56 @@ struct VoiceTranslationView: View {
     private var statusChip: some View {
         HStack(spacing: 7) {
             Circle()
-                .fill(SaphanTheme.connectionTint(for: viewModel.connectionState, in: colorScheme))
+                .fill(statusColor)
                 .frame(width: 8, height: 8)
+
             Text(connectionStatusText)
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundStyle(SaphanTheme.connectionTint(for: viewModel.connectionState, in: colorScheme))
+                .foregroundStyle(statusColor)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(
             Capsule()
-                .fill(SaphanTheme.connectionTint(for: viewModel.connectionState, in: colorScheme).opacity(0.15))
+                .fill(statusColor.opacity(0.15))
         )
     }
 
     private var connectionStatusText: String {
         switch viewModel.connectionState {
         case .connected:
-            return "Ready"
+            if viewModel.isOutputSpeaking {
+                return "Speaking output"
+            }
+            if viewModel.isTranslating {
+                return "Translating"
+            }
+            return "Listening"
         case .connecting:
             return "Connecting"
         case .disconnected:
-            return "Idle"
+            return viewModel.isWarmupInProgress ? "Warming up" : "Idle"
         case .error:
             return "Issue"
         }
+    }
+
+    private var statusColor: Color {
+        if viewModel.connectionState == .connected {
+            if viewModel.isOutputSpeaking {
+                return palette.accent
+            }
+            if viewModel.isTranslating {
+                return palette.warning
+            }
+            return palette.accent
+        }
+
+        if viewModel.connectionState == .disconnected && viewModel.isWarmupInProgress {
+            return palette.warning
+        }
+
+        return SaphanTheme.connectionTint(for: viewModel.connectionState, in: colorScheme)
     }
 
     // MARK: - Transcript Zone
@@ -237,20 +251,68 @@ struct VoiceTranslationView: View {
 
     private var contextualHint: some View {
         VStack(spacing: 12) {
-            Image(systemName: "mic.badge.plus")
+            Image(systemName: contextualHintIcon)
                 .font(.system(size: 34))
                 .foregroundStyle(palette.accent.opacity(0.6))
 
-            Text("Hold the mic and speak naturally.")
+            Text(contextualHintTitle)
                 .font(.system(size: 17, weight: .semibold, design: .rounded))
                 .foregroundStyle(palette.primaryText)
                 .multilineTextAlignment(.center)
 
-            Text("Auto-detects \(viewModel.language1.name) and \(viewModel.language2.name)")
+            Text(contextualHintSubtitle)
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(palette.secondaryText)
                 .multilineTextAlignment(.center)
         }
+    }
+
+    private var contextualHintIcon: String {
+        if viewModel.connectionState == .connected {
+            if viewModel.isOutputSpeaking {
+                return "speaker.wave.2.fill"
+            }
+            if viewModel.isTranslating {
+                return "hourglass.circle.fill"
+            }
+            if viewModel.isSpeaking {
+                return "waveform.circle.fill"
+            }
+            return "waveform.badge.mic"
+        }
+        return "mic.badge.plus"
+    }
+
+    private var contextualHintTitle: String {
+        if viewModel.connectionState == .connected {
+            if viewModel.isOutputSpeaking {
+                return "Speaking translated output"
+            }
+            if viewModel.isTranslating {
+                return "Translating now"
+            }
+            if viewModel.isSpeaking {
+                return "Listening to speech"
+            }
+            return "Always-on listening is active."
+        }
+        if viewModel.connectionState == .connecting {
+            return "Connecting to realtime translation"
+        }
+        return "Tap the mic to begin."
+    }
+
+    private var contextualHintSubtitle: String {
+        if viewModel.connectionState == .connected {
+            if viewModel.isOutputSpeaking {
+                return "Speech output can be stopped anytime."
+            }
+            return "Auto-detects source language and translates to \(viewModel.language2.name)."
+        }
+        if viewModel.connectionState == .connecting {
+            return "Initializing audio and network."
+        }
+        return "One tap to start. Speak naturally."
     }
 
     private var latestTranscriptBlock: some View {
@@ -306,21 +368,82 @@ struct VoiceTranslationView: View {
 
     private var micZone: some View {
         VStack(spacing: 8) {
-            if viewModel.interactionMode == .vad && viewModel.isConnected {
+            if viewModel.isConnected {
                 VADIndicatorView(isSpeaking: viewModel.isSpeaking)
                     .padding(.horizontal, 4)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
-            PTTButtonView(
-                isActive: viewModel.isPTTActive,
-                isSpeaking: viewModel.isSpeaking,
-                onPressDown: handlePTTPressDown,
-                onPressUp: handlePTTPressUp
-            )
+            alwaysOnControl
 
             secondaryControlsRow
         }
+    }
+
+    private var alwaysOnControl: some View {
+        VStack(spacing: 10) {
+            if viewModel.isConnected {
+                heroMicButton
+            } else {
+                Button {
+                    Task { await startAlwaysOnSession() }
+                } label: {
+                    heroMicButton
+                }
+                .buttonStyle(SaphanPressableStyle(scale: 0.97))
+                .disabled(viewModel.connectionState == .connecting)
+            }
+
+            if viewModel.isConnected && viewModel.isOutputSpeaking {
+                Button {
+                    Task { await viewModel.stopTranslationOutput() }
+                } label: {
+                    Text("Stop Output")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(palette.accent)
+                }
+                .buttonStyle(SaphanPressableStyle(scale: 0.97))
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
+    private var heroMicButton: some View {
+        ZStack {
+            Circle()
+                .fill(heroTint.opacity(0.16))
+                .frame(width: 170, height: 170)
+
+            Circle()
+                .fill(heroTint.opacity(0.12))
+                .frame(width: 132, height: 132)
+
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [heroTint.opacity(0.96), heroTint.opacity(0.78)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 112, height: 112)
+                .shadow(color: heroTint.opacity(0.35), radius: 18, y: 8)
+
+            Image(systemName: heroIconName)
+                .font(.system(size: 36, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private var heroTint: Color {
+        viewModel.isConnected ? palette.accent : palette.warning
+    }
+
+    private var heroIconName: String {
+        if viewModel.connectionState == .connecting {
+            return "hourglass"
+        }
+        return viewModel.isConnected ? "waveform" : "mic"
     }
 
     private var secondaryControlsRow: some View {
@@ -375,58 +498,12 @@ struct VoiceTranslationView: View {
         } else {
             isPremium = false
         }
-
-        if !isPremium && viewModel.interactionMode != .ptt {
-            viewModel.interactionMode = .ptt
-            if viewModel.isConnected {
-                viewModel.toggleInteractionMode()
-            }
-        }
     }
 
-    private func selectInteractionMode(_ mode: InteractionMode) {
-        guard mode != .vad || isPremium else {
-            showPaywall = true
-            return
-        }
-
-        guard viewModel.interactionMode != mode else { return }
-        viewModel.interactionMode = mode
-
-        if viewModel.isConnected {
-            viewModel.toggleInteractionMode()
-        }
-
-        HapticManager.selection()
-    }
-
-    private func handlePTTPressDown() {
-        isMicHeld = true
-
-        if viewModel.interactionMode != .ptt {
-            selectInteractionMode(.ptt)
-        }
-
-        if viewModel.isConnected {
-            viewModel.pttPressed()
-            return
-        }
-
+    private func startAlwaysOnSession() async {
         guard viewModel.connectionState != .connecting else { return }
-
-        Task {
-            await viewModel.connect()
-            if isMicHeld && viewModel.interactionMode == .ptt {
-                viewModel.pttPressed()
-            } else if viewModel.isConnected && viewModel.interactionMode == .ptt {
-                await viewModel.disconnect()
-            }
-        }
-    }
-
-    private func handlePTTPressUp() {
-        isMicHeld = false
-        viewModel.pttReleased()
+        viewModel.interactionMode = .vad
+        await viewModel.connect()
     }
 }
 
@@ -451,6 +528,7 @@ private struct FeatureRow: View {
 }
 
 // MARK: - Language Picker Sheet
+
 struct LanguagePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selectedLanguage: Language
@@ -486,7 +564,7 @@ struct LanguagePickerSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(language.name)
                                 .foregroundStyle(.primary)
-                            Text("\(language.nativeName) \u{2022} \(language.code.uppercased())")
+                            Text("\(language.nativeName) • \(language.code.uppercased())")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -517,13 +595,16 @@ struct LanguagePickerSheet: View {
 }
 
 // MARK: - Advanced Controls Sheet
+
 struct AdvancedTranslationControlsSheet: View {
     let isPremium: Bool
-    @Binding var interactionMode: InteractionMode
+    @Binding var preferredLanguage: Language
+    let targetLanguageCode: String
+    @Binding var audioOutputPreference: AudioOutputPreference
+    let currentOutputDeviceName: String
     @Binding var contextMode: ContextMode
     @Binding var selectedVoice: VoiceOption
     let onUpgradeTap: () -> Void
-    let onModeChanged: (InteractionMode) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
@@ -536,27 +617,37 @@ struct AdvancedTranslationControlsSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Interaction Mode")
+                        Text("Preferred Language")
                             .font(.system(size: 13, weight: .semibold, design: .rounded))
                             .foregroundStyle(palette.secondaryText)
 
-                        Picker("Mode", selection: Binding(
-                            get: { interactionMode },
-                            set: { newMode in
-                                onModeChanged(newMode)
+                        Picker("Preferred language", selection: $preferredLanguage) {
+                            ForEach(Language.allLanguages.filter { $0.code != targetLanguageCode }) { language in
+                                Text("\(language.name) • \(language.nativeName)")
+                                    .tag(language)
                             }
-                        )) {
-                            Text("Push-to-Talk").tag(InteractionMode.ptt)
-                            Text("Always-On").tag(InteractionMode.vad)
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    .padding(14)
+                    .background(cardBackground)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Audio Output")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(palette.secondaryText)
+
+                        Picker("Audio output", selection: $audioOutputPreference) {
+                            ForEach(AudioOutputPreference.allCases) { output in
+                                Text(output.title)
+                                    .tag(output)
+                            }
                         }
                         .pickerStyle(.segmented)
-                        .disabled(!isPremium)
 
-                        if !isPremium {
-                            Text("Always-On requires Premium")
-                                .font(.system(size: 11, weight: .medium, design: .rounded))
-                                .foregroundStyle(palette.warning)
-                        }
+                        Text("Current route: \(currentOutputDeviceName)")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(palette.secondaryText)
                     }
                     .padding(14)
                     .background(cardBackground)
@@ -601,7 +692,6 @@ struct AdvancedTranslationControlsSheet: View {
                                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                                 .foregroundStyle(palette.secondaryText)
 
-                            FeatureRow(icon: "lock.fill", text: "Always-on listening", tint: palette.warning)
                             FeatureRow(icon: "lock.fill", text: "Automatic speaker switching", tint: palette.warning)
                             FeatureRow(icon: "lock.fill", text: "Advanced tone by context/contact", tint: palette.warning)
                             FeatureRow(icon: "lock.fill", text: "Conversation memory", tint: palette.warning)
@@ -616,7 +706,7 @@ struct AdvancedTranslationControlsSheet: View {
                             dismiss()
                             onUpgradeTap()
                         } label: {
-                            Text("Unlock Always-On, Memory, Export, Offline Packs")
+                            Text("Unlock Memory, Export, Offline Packs")
                                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity)
@@ -653,55 +743,8 @@ struct AdvancedTranslationControlsSheet: View {
     }
 }
 
-// MARK: - Voice Picker Sheet
-struct VoicePickerSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var selectedVoice: VoiceOption
-
-    var body: some View {
-        NavigationStack {
-            List(VoiceOption.allCases) { voice in
-                Button {
-                    selectedVoice = voice
-                    HapticManager.selection()
-                    dismiss()
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(voice.rawValue.capitalized)
-                                .foregroundStyle(.primary)
-                                .font(.headline)
-
-                            Text(voice.description)
-                                .foregroundStyle(.secondary)
-                                .font(.subheadline)
-                        }
-
-                        Spacer()
-
-                        if voice == selectedVoice {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(SaphanTheme.brandCoral)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Select Voice")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
 // MARK: - VAD Indicator View
+
 struct VADIndicatorView: View {
     let isSpeaking: Bool
     @Environment(\.colorScheme) private var colorScheme

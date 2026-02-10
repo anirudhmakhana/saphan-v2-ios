@@ -3,40 +3,52 @@ import SwiftUI
 /// Push-to-talk button with visual feedback
 struct PTTButtonView: View {
     let isActive: Bool
+    let isProcessing: Bool
     let isSpeaking: Bool
     let onPressDown: () -> Void
-    let onPressUp: () -> Void
+    let onHoldConfirmed: () -> Void
+    let onRelease: () -> Void
+    let onCancel: () -> Void
 
     @State private var isPressed = false
     @State private var pulse = false
+    @State private var isInsideTouchRegion = true
+    @State private var hasTriggeredHold = false
+    @State private var holdTask: Task<Void, Never>?
     @Environment(\.colorScheme) private var colorScheme
 
     private var palette: SaphanTheme.Palette {
         SaphanTheme.palette(for: colorScheme)
     }
 
+    private let holdConfirmationThreshold: UInt64 = 120_000_000
+
     private var signalColor: Color {
+        if isProcessing { return palette.warning }
         if isActive { return palette.danger }
         if isSpeaking { return palette.warning }
         return palette.accent
     }
 
     private var iconName: String {
+        if isProcessing { return "hourglass" }
         if isActive { return "mic.fill" }
         if isSpeaking { return "waveform" }
         return "mic"
     }
 
     private var titleText: String {
+        if isProcessing { return "Processing turn" }
         if isActive { return "Release to send" }
         if isSpeaking { return "Assistant speaking" }
         return "Hold to talk"
     }
 
     private var subtitleText: String {
+        if isProcessing { return "Translating and preparing speech" }
         if isActive { return "You're live" }
-        if isSpeaking { return "Listening resumes automatically" }
-        return "Press and hold for instant translation"
+        if isSpeaking { return "Press to interrupt and speak again" }
+        return "Press, hold, then release to translate"
     }
 
     var body: some View {
@@ -78,34 +90,49 @@ struct PTTButtonView: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        guard !isSpeaking else { return }
                         let center = CGPoint(x: 85, y: 85)
                         let distance = hypot(value.location.x - center.x, value.location.y - center.y)
-                        let isInsideTouchRegion = distance <= 98
+                        let isInside = distance <= 98
 
-                        if isInsideTouchRegion && !isPressed {
+                        if !isPressed {
                             isPressed = true
+                            isInsideTouchRegion = true
+                            hasTriggeredHold = false
                             onPressDown()
-                        } else if !isInsideTouchRegion && isPressed {
-                            isPressed = false
-                            onPressUp()
+                            startHoldConfirmationTimer()
+                        }
+
+                        if isInside != isInsideTouchRegion {
+                            isInsideTouchRegion = isInside
+
+                            if !isInside {
+                                if hasTriggeredHold {
+                                    onCancel()
+                                }
+                                resetGestureState()
+                            }
                         }
                     }
                     .onEnded { _ in
-                        guard isPressed else { return }
-                        isPressed = false
-                        onPressUp()
+                        defer { resetGestureState() }
+                        guard isInsideTouchRegion else { return }
+
+                        if hasTriggeredHold {
+                            onRelease()
+                        } else {
+                            onCancel()
+                        }
                     }
             )
             .onAppear {
                 pulse = true
             }
             .onDisappear {
-                guard isPressed else { return }
-                isPressed = false
-                onPressUp()
+                if isPressed {
+                    onCancel()
+                }
+                resetGestureState()
             }
-            .disabled(isSpeaking)
 
             VStack(spacing: 3) {
                 Text(titleText)
@@ -123,10 +150,47 @@ struct PTTButtonView: View {
     }
 }
 
+private extension PTTButtonView {
+    func startHoldConfirmationTimer() {
+        holdTask?.cancel()
+        holdTask = Task {
+            try? await Task.sleep(nanoseconds: holdConfirmationThreshold)
+            guard !Task.isCancelled else { return }
+            guard isPressed, isInsideTouchRegion, !hasTriggeredHold else { return }
+            hasTriggeredHold = true
+            onHoldConfirmed()
+        }
+    }
+
+    func resetGestureState() {
+        holdTask?.cancel()
+        holdTask = nil
+        isPressed = false
+        isInsideTouchRegion = true
+        hasTriggeredHold = false
+    }
+}
+
 #Preview {
     VStack(spacing: 24) {
-        PTTButtonView(isActive: false, isSpeaking: false, onPressDown: { }, onPressUp: { })
-        PTTButtonView(isActive: true, isSpeaking: false, onPressDown: { }, onPressUp: { })
+        PTTButtonView(
+            isActive: false,
+            isProcessing: false,
+            isSpeaking: false,
+            onPressDown: { },
+            onHoldConfirmed: { },
+            onRelease: { },
+            onCancel: { }
+        )
+        PTTButtonView(
+            isActive: true,
+            isProcessing: false,
+            isSpeaking: false,
+            onPressDown: { },
+            onHoldConfirmed: { },
+            onRelease: { },
+            onCancel: { }
+        )
     }
     .padding()
 }

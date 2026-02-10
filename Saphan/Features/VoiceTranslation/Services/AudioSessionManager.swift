@@ -144,6 +144,28 @@ final class AudioSessionManager {
         return AudioRoute(inputs: inputs, outputs: outputs)
     }
 
+    /// Human-readable current output device for UI display.
+    var currentOutputDeviceName: String {
+        guard let output = session.currentRoute.outputs.first else {
+            return "Unknown Output"
+        }
+
+        switch output.portType {
+        case .builtInSpeaker:
+            return "iPhone Speaker"
+        case .builtInReceiver:
+            return "Phone Earpiece"
+        case .headphones:
+            return "Wired Headphones"
+        case .bluetoothA2DP, .bluetoothHFP, .bluetoothLE:
+            return output.portName
+        case .airPlay:
+            return "AirPlay"
+        default:
+            return output.portName
+        }
+    }
+
     /// Log current audio route
     func logCurrentRoute() {
         let route = currentRoute

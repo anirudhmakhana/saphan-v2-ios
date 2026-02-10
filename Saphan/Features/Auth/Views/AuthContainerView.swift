@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 import SaphanCore
 
 struct AuthContainerView: View {
@@ -149,26 +150,18 @@ struct AuthContainerView: View {
                             }
                             .padding(.vertical, 8)
 
-                            Button {
+                            SignInWithAppleButton(.signIn) { request in
                                 focusedField = nil
+                                authViewModel.prepareAppleSignInRequest(request)
+                            } onCompletion: { result in
                                 Task {
-                                    await authViewModel.signInWithApple()
-                                }
-                            } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "apple.logo")
-                                        .font(.system(size: 18))
-                                    Text("Sign in with Apple")
-                                        .font(.headline)
-                                        .fontWeight(.medium)
+                                    await authViewModel.handleAppleSignInCompletion(result)
                                 }
                             }
+                            .signInWithAppleButtonStyle(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(Color.white)
-                            .foregroundColor(.black)
                             .cornerRadius(12)
-                            .buttonStyle(SaphanPressableStyle(scale: 0.98))
                             .disabled(authViewModel.isLoading)
 
                             Button {

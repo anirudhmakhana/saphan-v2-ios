@@ -70,6 +70,7 @@ final class KeyboardViewModel: ObservableObject {
 
     private weak var textDocumentProxy: UITextDocumentProxy?
     private let translationService: TranslationService
+    private let keychainService: KeychainService
     private let preferences: PreferencesService
     private let debouncer: Debouncer
     private var currentTranslationTask: Task<Void, Never>?
@@ -80,6 +81,7 @@ final class KeyboardViewModel: ObservableObject {
         let userDefaults = UserDefaults(suiteName: Constants.appGroupID) ?? .standard
         self.preferences = PreferencesService(userDefaults: userDefaults)
         self.translationService = TranslationService()
+        self.keychainService = KeychainService()
         self.debouncer = Debouncer(delay: Constants.UI.debounceDelay)
 
         // Create language pair from preferences
@@ -234,6 +236,12 @@ final class KeyboardViewModel: ObservableObject {
             return
         }
 
+        guard keychainService.getAuthToken() != nil else {
+            state = .error
+            errorMessage = "Sign in to Saphan and open the app once, then try again."
+            return
+        }
+
         guard canTranslate else { return }
         translateImmediately()
     }
@@ -296,7 +304,8 @@ final class KeyboardViewModel: ObservableObject {
     private func handleTranslationError(_ error: TranslationError) {
         switch error {
         case .unauthorized:
-            state = .fullAccessRequired
+            errorMessage = "Sign in to Saphan and open the app once, then try again."
+            state = .error
         case .invalidInput:
             state = .idle
         default:
