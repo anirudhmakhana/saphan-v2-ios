@@ -1,4 +1,5 @@
 import UIKit
+import GoogleSignIn
 import SaphanCore
 
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -30,5 +31,17 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
     func applicationWillEnterForeground(_ application: UIApplication) {
         Logger.shared.log("App will enter foreground", category: .app, level: .debug)
+    }
+
+    func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
+        let handled = GIDSignIn.sharedInstance.handle(url)
+        if handled {
+            Logger.shared.log("Handled Google Sign-In callback URL", category: .auth, level: .debug)
+        }
+        return handled
     }
 }

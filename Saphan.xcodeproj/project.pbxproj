@@ -1081,6 +1081,11 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SAPHAN_GOOGLE_CLIENT_ID = "827439722402-upp0bi2sdsba5vb5mm46vl0d4narrkac.apps.googleusercontent.com";
+				SAPHAN_GOOGLE_REVERSED_CLIENT_ID = "com.googleusercontent.apps.827439722402-upp0bi2sdsba5vb5mm46vl0d4narrkac";
+				SAPHAN_GOOGLE_SERVER_CLIENT_ID = "827439722402-m1afdp8eirnjlualdoeu0e3nfppb1mvi.apps.googleusercontent.com";
+				SAPHAN_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplZ3FpdGFqeHp4a2Zqamthd2NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyNjcwNzgsImV4cCI6MjA3ODg0MzA3OH0.WWK-uNTovhQz8En9MG0UJ6Wbn3RMaOPLCX-uG6uxpwk";
+				SAPHAN_SUPABASE_URL = "https://zegqitajxzxkfjjkawcn.supabase.co";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -1200,6 +1205,11 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SAPHAN_GOOGLE_CLIENT_ID = "827439722402-upp0bi2sdsba5vb5mm46vl0d4narrkac.apps.googleusercontent.com";
+				SAPHAN_GOOGLE_REVERSED_CLIENT_ID = "com.googleusercontent.apps.827439722402-upp0bi2sdsba5vb5mm46vl0d4narrkac";
+				SAPHAN_GOOGLE_SERVER_CLIENT_ID = "827439722402-m1afdp8eirnjlualdoeu0e3nfppb1mvi.apps.googleusercontent.com";
+				SAPHAN_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplZ3FpdGFqeHp4a2Zqamthd2NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyNjcwNzgsImV4cCI6MjA3ODg0MzA3OH0.WWK-uNTovhQz8En9MG0UJ6Wbn3RMaOPLCX-uG6uxpwk";
+				SAPHAN_SUPABASE_URL = "https://zegqitajxzxkfjjkawcn.supabase.co";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";

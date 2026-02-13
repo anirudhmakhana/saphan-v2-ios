@@ -454,8 +454,8 @@ enum Tone: String, CaseIterable {
 
 #### A. Authentication
 - [x] A1. Sign in with Apple end-to-end implementation (app code)
-- [ ] A2. Sign in with Google end-to-end implementation
-- [ ] A3. OAuth callback handling and URL scheme configuration
+- [x] A2. Sign in with Google end-to-end implementation (app code)
+- [x] A3. OAuth callback handling and URL scheme configuration (app code)
 - [ ] A4. Account linking and conflict resolution UX
 - [ ] A5. Auth error taxonomy and user-facing retry states
 
@@ -465,6 +465,13 @@ enum Tone: String, CaseIterable {
 - [ ] A1.3 Regenerate/download provisioning profile containing `com.apple.developer.applesignin`
 - [ ] A1.4 Set `SAPHAN_SUPABASE_URL` and `SAPHAN_SUPABASE_ANON_KEY` in build settings/CI secrets
 - [ ] A1.5 Validate Sign in with Apple on physical device (first sign-in + returning user)
+
+#### A2 follow-up (external configuration)
+- [ ] A2.1 Create iOS OAuth client in Google Cloud Console for `com.krsnalabs.saphan`
+- [ ] A2.2 Set `SAPHAN_GOOGLE_CLIENT_ID`, `SAPHAN_GOOGLE_SERVER_CLIENT_ID`, and `SAPHAN_GOOGLE_REVERSED_CLIENT_ID`
+- [ ] A2.3 Verify `CFBundleURLTypes` uses the correct reversed client ID
+- [ ] A2.4 Enable Google provider in Supabase Auth settings
+- [ ] A2.5 Validate Sign in with Google on physical device (first sign-in + returning user)
 
 #### B. Subscription / RevenueCat
 - [ ] B1. RevenueCat SDK configure/initialize with real API key
@@ -491,7 +498,7 @@ enum Tone: String, CaseIterable {
 
 ### Current focus
 
-- [ ] **NOW: A1.1-A1.5 external config + device validation, then move to A2**
+- [ ] **NOW: A1.1-A1.5 + A2.1-A2.5 external config and device validation**
 
 ## Notes
 

@@ -3,6 +3,8 @@ import AuthenticationServices
 import CryptoKit
 import Security
 import SwiftUI
+import UIKit
+import GoogleSignIn
 import Supabase
 import SaphanCore
 
@@ -180,21 +182,45 @@ final class AuthViewModel: ObservableObject {
     func signInWithGoogle() async {
         isLoading = true
         error = nil
+        defer { isLoading = false }
 
         Logger.shared.log("Sign in with Google initiated", category: .auth, level: .info)
 
         do {
-            try await Task.sleep(nanoseconds: 1_000_000_000)
+            let configuration = try googleSignInConfiguration()
+            guard let presentingViewController = Self.presentingViewController() else {
+                throw AuthError.serverError("Unable to present Google Sign-In. Please try again.")
+            }
 
-            error = "Sign in with Google will be available soon"
+            GIDSignIn.sharedInstance.configuration = configuration
 
-            Logger.shared.log("Sign in with Google not yet implemented", category: .auth, level: .warning)
+            let signInResult = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<GIDSignInResult, Error>) in
+                GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController) { result, signInError in
+                    if let signInError {
+                        continuation.resume(throwing: signInError)
+                        return
+                    }
+
+                    guard let result else {
+                        continuation.resume(throwing: AuthError.serverError("Google Sign-In did not return a result."))
+                        return
+                    }
+
+                    continuation.resume(returning: result)
+                }
+            }
+
+            try await signInWithGoogleResult(signInResult)
+
         } catch {
+            if isGoogleSignInCancelled(error) {
+                Logger.shared.log("Sign in with Google canceled by user", category: .auth, level: .info)
+                return
+            }
+
             Logger.shared.log("Sign in with Google error: \(error.localizedDescription)", category: .auth, level: .error)
             self.error = error.localizedDescription
         }
-
-        isLoading = false
     }
 
     func continueAsGuest() {
@@ -216,7 +242,9 @@ final class AuthViewModel: ObservableObject {
         Logger.shared.log("User signing out", category: .auth, level: .info)
 
         _ = keychainService.deleteAuthToken()
+        _ = keychainService.deleteRefreshToken()
         _ = keychainService.deleteUserData()
+        GIDSignIn.sharedInstance.signOut()
 
         currentUser = nil
         isAuthenticated = false
@@ -251,40 +279,36 @@ final class AuthViewModel: ObservableObject {
             )
         )
 
-        let resolvedEmail = (session.user.email ?? credential.email ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !resolvedEmail.isEmpty else {
-            throw AuthError.serverError("Unable to retrieve your email from Apple Sign-In.")
-        }
-
-        let resolvedName = formattedName(from: credential.fullName)
-        let mappedUser = SaphanCore.User(
-            id: session.user.id.uuidString,
-            email: resolvedEmail,
-            name: resolvedName,
-            isGuest: false,
-            createdAt: session.user.createdAt,
-            updatedAt: session.user.updatedAt
+        try persistSupabaseSession(
+            session: session,
+            fallbackEmail: credential.email,
+            fallbackName: formattedName(from: credential.fullName)
         )
 
-        if keychainService.saveAuthToken(session.accessToken) {
-            Logger.shared.log("Auth token saved to keychain", category: .auth, level: .info)
-        }
-
-        if keychainService.setRefreshToken(session.refreshToken) {
-            Logger.shared.log("Refresh token saved to keychain", category: .auth, level: .info)
-        }
-
-        if keychainService.saveUserData(mappedUser) {
-            Logger.shared.log("User data saved to keychain", category: .auth, level: .info)
-        }
-
-        currentUser = mappedUser
-        isAuthenticated = true
-        email = ""
-        password = ""
-        confirmPassword = ""
-
         Logger.shared.log("Sign in with Apple successful", category: .auth, level: .info)
+    }
+
+    private func signInWithGoogleResult(_ signInResult: GIDSignInResult) async throws {
+        guard let idToken = signInResult.user.idToken?.tokenString, !idToken.isEmpty else {
+            throw AuthError.serverError("Google Sign-In did not return a valid identity token.")
+        }
+
+        let accessToken = signInResult.user.accessToken.tokenString
+        let session = try await supabaseClient().auth.signInWithIdToken(
+            credentials: OpenIDConnectCredentials(
+                provider: .google,
+                idToken: idToken,
+                accessToken: accessToken
+            )
+        )
+
+        try persistSupabaseSession(
+            session: session,
+            fallbackEmail: signInResult.user.profile?.email,
+            fallbackName: signInResult.user.profile?.name
+        )
+
+        Logger.shared.log("Sign in with Google successful", category: .auth, level: .info)
     }
 
     private func supabaseClient() throws -> SupabaseClient {
@@ -316,6 +340,104 @@ final class AuthViewModel: ObservableObject {
         let client = SupabaseClient(supabaseURL: supabaseURL, supabaseKey: supabaseAnonKey)
         cachedSupabaseClient = client
         return client
+    }
+
+    private func googleSignInConfiguration() throws -> GIDConfiguration {
+        let clientID = Constants.GoogleSignIn.clientID.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawServerClientID = Constants.GoogleSignIn.serverClientID.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let invalidClientID =
+            clientID.isEmpty ||
+            clientID.contains("YOUR_GOOGLE_CLIENT_ID") ||
+            clientID.hasPrefix("$(")
+
+        guard !invalidClientID else {
+            throw AuthError.serverError(
+                "Google Sign-In is not configured. Set SAPHAN_GOOGLE_CLIENT_ID and URL scheme values."
+            )
+        }
+
+        let serverClientID: String? = {
+            guard !rawServerClientID.isEmpty,
+                  !rawServerClientID.contains("YOUR_"),
+                  !rawServerClientID.hasPrefix("$(") else {
+                return nil
+            }
+            return rawServerClientID
+        }()
+
+        return GIDConfiguration(clientID: clientID, serverClientID: serverClientID)
+    }
+
+    private func persistSupabaseSession(
+        session: Session,
+        fallbackEmail: String?,
+        fallbackName: String?
+    ) throws {
+        let resolvedEmail = (session.user.email ?? fallbackEmail ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !resolvedEmail.isEmpty else {
+            throw AuthError.serverError("Unable to retrieve your account email from sign-in.")
+        }
+
+        let trimmedName = fallbackName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let mappedUser = SaphanCore.User(
+            id: session.user.id.uuidString,
+            email: resolvedEmail,
+            name: (trimmedName?.isEmpty == true) ? nil : trimmedName,
+            isGuest: false,
+            createdAt: session.user.createdAt,
+            updatedAt: session.user.updatedAt
+        )
+
+        if keychainService.saveAuthToken(session.accessToken) {
+            Logger.shared.log("Auth token saved to keychain", category: .auth, level: .info)
+        }
+
+        if keychainService.setRefreshToken(session.refreshToken) {
+            Logger.shared.log("Refresh token saved to keychain", category: .auth, level: .info)
+        }
+
+        if keychainService.saveUserData(mappedUser) {
+            Logger.shared.log("User data saved to keychain", category: .auth, level: .info)
+        }
+
+        currentUser = mappedUser
+        isAuthenticated = true
+        email = ""
+        password = ""
+        confirmPassword = ""
+    }
+
+    private func isGoogleSignInCancelled(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.domain == kGIDSignInErrorDomain &&
+            nsError.code == -5
+    }
+
+    private static func presentingViewController() -> UIViewController? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let keyWindow = scenes
+            .flatMap { $0.windows }
+            .first(where: { $0.isKeyWindow }) ?? scenes.first?.windows.first
+
+        return topViewController(from: keyWindow?.rootViewController)
+    }
+
+    private static func topViewController(from root: UIViewController?) -> UIViewController? {
+        if let navigation = root as? UINavigationController {
+            return topViewController(from: navigation.visibleViewController)
+        }
+
+        if let tab = root as? UITabBarController {
+            return topViewController(from: tab.selectedViewController)
+        }
+
+        if let presented = root?.presentedViewController {
+            return topViewController(from: presented)
+        }
+
+        return root
     }
 
     private func formattedName(from components: PersonNameComponents?) -> String? {

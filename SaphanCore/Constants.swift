@@ -62,6 +62,41 @@ public enum Constants {
         public static let entitlementID = "plus"
     }
 
+    // Google Sign-In configuration
+    public enum GoogleSignIn {
+        public static let clientID: String = {
+            #if DEBUG
+            if let override = ProcessInfo.processInfo.environment["SAPHAN_GOOGLE_CLIENT_ID"],
+               !override.isEmpty {
+                return override
+            }
+            #endif
+
+            if let plistValue = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
+               !plistValue.isEmpty {
+                return plistValue
+            }
+
+            return "YOUR_GOOGLE_CLIENT_ID"
+        }()
+
+        public static let serverClientID: String = {
+            #if DEBUG
+            if let override = ProcessInfo.processInfo.environment["SAPHAN_GOOGLE_SERVER_CLIENT_ID"],
+               !override.isEmpty {
+                return override
+            }
+            #endif
+
+            if let plistValue = Bundle.main.object(forInfoDictionaryKey: "GIDServerClientID") as? String,
+               !plistValue.isEmpty {
+                return plistValue
+            }
+
+            return ""
+        }()
+    }
+
     // Voice-specific constants
     public enum Voice {
         // Keep aligned with backend ephemeral token model.

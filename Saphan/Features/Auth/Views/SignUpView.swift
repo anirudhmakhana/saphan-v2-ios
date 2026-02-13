@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 import SaphanCore
 
 struct SignUpView: View {
@@ -147,6 +148,58 @@ struct SignUpView: View {
                         .buttonStyle(SaphanPressableStyle(scale: 0.98))
                         .disabled(authViewModel.isLoading)
 
+                        HStack {
+                            Rectangle()
+                                .fill(Color.white.opacity(0.3))
+                                .frame(height: 1)
+
+                            Text("or")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.7))
+                                .padding(.horizontal, 8)
+
+                            Rectangle()
+                                .fill(Color.white.opacity(0.3))
+                                .frame(height: 1)
+                        }
+                        .padding(.vertical, 8)
+
+                        SignInWithAppleButton(.signUp) { request in
+                            focusedField = nil
+                            authViewModel.prepareAppleSignInRequest(request)
+                        } onCompletion: { result in
+                            Task {
+                                await authViewModel.handleAppleSignInCompletion(result)
+                            }
+                        }
+                        .signInWithAppleButtonStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .cornerRadius(12)
+                        .disabled(authViewModel.isLoading)
+
+                        Button {
+                            focusedField = nil
+                            Task {
+                                await authViewModel.signInWithGoogle()
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "g.circle.fill")
+                                    .font(.system(size: 18))
+                                Text("Sign up with Google")
+                                    .font(.headline)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.white)
+                        .foregroundColor(.black)
+                        .cornerRadius(12)
+                        .buttonStyle(SaphanPressableStyle(scale: 0.98))
+                        .disabled(authViewModel.isLoading)
+
                         Button {
                             focusedField = nil
                             dismiss()
@@ -167,10 +220,7 @@ struct SignUpView: View {
                     Spacer()
                 }
             }
-            .scrollDismissesKeyboard(.interactively)
-            .onTapGesture {
-                focusedField = nil
-            }
+            .scrollDismissesKeyboard(.immediately)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {

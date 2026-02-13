@@ -203,10 +203,7 @@ struct AuthContainerView: View {
                         Spacer()
                     }
                 }
-                .scrollDismissesKeyboard(.interactively)
-                .onTapGesture {
-                    focusedField = nil
-                }
+                .scrollDismissesKeyboard(.immediately)
             }
             .navigationDestination(isPresented: $showingSignUp) {
                 SignUpView()
