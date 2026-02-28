@@ -22,6 +22,7 @@ public class PreferencesService {
         static let selectedVoice = "selectedVoice"
         static let interactionMode = "interactionMode"
         static let subscriptionExpirationDate = "subscriptionExpirationDate"
+        static let preferredInputMode = "preferredInputMode"
 
         static var allKeys: [String] {
             return [
@@ -36,7 +37,8 @@ public class PreferencesService {
                 defaultContextMode,
                 selectedVoice,
                 interactionMode,
-                subscriptionExpirationDate
+                subscriptionExpirationDate,
+                preferredInputMode
             ]
         }
     }
@@ -173,6 +175,15 @@ public class PreferencesService {
         }
         set {
             userDefaults.set(newValue, forKey: Keys.hasCompletedOnboarding)
+        }
+    }
+
+    public var preferredInputMode: String {
+        get {
+            userDefaults.string(forKey: Keys.preferredInputMode) ?? "voice"
+        }
+        set {
+            userDefaults.set(newValue, forKey: Keys.preferredInputMode)
         }
     }
 

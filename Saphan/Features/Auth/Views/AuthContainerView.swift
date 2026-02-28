@@ -186,17 +186,6 @@ struct AuthContainerView: View {
                             .buttonStyle(SaphanPressableStyle(scale: 0.98))
                             .disabled(authViewModel.isLoading)
 
-                            Button {
-                                authViewModel.continueAsGuest()
-                            } label: {
-                                Text("Continue as Guest")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.white.opacity(0.7))
-                                    .underline()
-                            }
-                            .disabled(authViewModel.isLoading)
-                            .padding(.top, 8)
                         }
                         .padding(.horizontal, 32)
 

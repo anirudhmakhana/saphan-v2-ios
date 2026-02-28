@@ -223,21 +223,6 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    func continueAsGuest() {
-        Logger.shared.log("User continuing as guest", category: .auth, level: .info)
-
-        currentUser = SaphanCore.User(
-            id: "guest_\(UUID().uuidString)",
-            email: "guest@saphan.app",
-            name: "Guest User",
-            isGuest: true,
-            createdAt: Date(),
-            updatedAt: Date()
-        )
-
-        isAuthenticated = true
-    }
-
     func signOut() {
         Logger.shared.log("User signing out", category: .auth, level: .info)
 

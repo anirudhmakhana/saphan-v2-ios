@@ -1,0 +1,81 @@
+{
+  "_defaultStorefront": "USA",
+  "_storeKitErrors": [],
+  "identifier": "com.krsnalabs.saphan",
+  "nonConsumableProducts": [],
+  "nonRenewingSubscriptionProducts": [],
+  "products": [],
+  "subscriptionGroups": [
+    {
+      "id": "SAPHAN_PRO_GROUP",
+      "localizations": [],
+      "name": "Saphan Pro",
+      "subscriptions": [
+        {
+          "adHocOfferCodesEnabled": false,
+          "displayPrice": "2.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "WEEKLY_INTERNAL",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Weekly access to Saphan Pro",
+              "displayName": "Saphan Pro Weekly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "weekly",
+          "recurringSubscriptionPeriod": "P1W",
+          "referenceName": "Saphan Pro Weekly",
+          "subscriptionGroupID": "SAPHAN_PRO_GROUP",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOfferCodesEnabled": false,
+          "displayPrice": "9.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "MONTHLY_INTERNAL",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Monthly access to Saphan Pro",
+              "displayName": "Saphan Pro Monthly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Saphan Pro Monthly",
+          "subscriptionGroupID": "SAPHAN_PRO_GROUP",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOfferCodesEnabled": false,
+          "displayPrice": "79.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "YEARLY_INTERNAL",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Yearly access to Saphan Pro",
+              "displayName": "Saphan Pro Yearly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "yearly",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Saphan Pro Yearly",
+          "subscriptionGroupID": "SAPHAN_PRO_GROUP",
+          "type": "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}

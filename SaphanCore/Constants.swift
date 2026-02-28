@@ -58,8 +58,37 @@ public enum Constants {
 
     // RevenueCat configuration
     public enum RevenueCat {
-        public static let apiKey = "YOUR_REVENUECAT_API_KEY"
-        public static let entitlementID = "plus"
+        public static let apiKey: String = {
+            #if DEBUG
+            if let override = ProcessInfo.processInfo.environment["SAPHAN_REVENUECAT_API_KEY"],
+               !override.isEmpty {
+                return override
+            }
+            #endif
+
+            if let plistValue = Bundle.main.object(forInfoDictionaryKey: "SAPHAN_REVENUECAT_API_KEY") as? String,
+               !plistValue.isEmpty {
+                return plistValue
+            }
+
+            return "YOUR_REVENUECAT_API_KEY"
+        }()
+
+        public static let entitlementID: String = {
+            #if DEBUG
+            if let override = ProcessInfo.processInfo.environment["SAPHAN_REVENUECAT_ENTITLEMENT_ID"],
+               !override.isEmpty {
+                return override
+            }
+            #endif
+
+            if let plistValue = Bundle.main.object(forInfoDictionaryKey: "SAPHAN_REVENUECAT_ENTITLEMENT_ID") as? String,
+               !plistValue.isEmpty {
+                return plistValue
+            }
+
+            return "plus"
+        }()
     }
 
     // Google Sign-In configuration
@@ -142,7 +171,11 @@ public enum Constants {
     public enum Subscription {
         public static let freeTier = "free"
         public static let plusTier = "plus"
-        public static let productIDs = ["saphan_plus_monthly", "saphan_plus_yearly"]
+        public static let productIDs = [
+            "saphan_plus_weekly",
+            "saphan_plus_monthly",
+            "saphan_plus_yearly"
+        ]
     }
 
     // Privacy

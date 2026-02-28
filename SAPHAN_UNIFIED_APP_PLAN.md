@@ -422,7 +422,7 @@ enum Tone: String, CaseIterable {
 
 ---
 
-## App Store Readiness Tracker (2026-02-10)
+## App Store Readiness Tracker (2026-02-13)
 
 ### Recommended execution order (one step at a time)
 
@@ -460,26 +460,27 @@ enum Tone: String, CaseIterable {
 - [ ] A5. Auth error taxonomy and user-facing retry states
 
 #### A1 follow-up (external configuration)
-- [ ] A1.1 Enable Apple provider in Supabase Auth settings
-- [ ] A1.2 Enable Sign in with Apple capability for `com.krsnalabs.saphan` in Apple Developer portal
-- [ ] A1.3 Regenerate/download provisioning profile containing `com.apple.developer.applesignin`
+- [x] A1.1 Enable Apple provider in Supabase Auth settings
+- [x] A1.2 Enable Sign in with Apple capability for `com.krsnalabs.saphan` in Apple Developer portal
+- [x] A1.3 Regenerate/download provisioning profile containing `com.apple.developer.applesignin`
 - [ ] A1.4 Set `SAPHAN_SUPABASE_URL` and `SAPHAN_SUPABASE_ANON_KEY` in build settings/CI secrets
-- [ ] A1.5 Validate Sign in with Apple on physical device (first sign-in + returning user)
+- [x] A1.5 Validate Sign in with Apple on physical device (first sign-in + returning user)
 
 #### A2 follow-up (external configuration)
-- [ ] A2.1 Create iOS OAuth client in Google Cloud Console for `com.krsnalabs.saphan`
-- [ ] A2.2 Set `SAPHAN_GOOGLE_CLIENT_ID`, `SAPHAN_GOOGLE_SERVER_CLIENT_ID`, and `SAPHAN_GOOGLE_REVERSED_CLIENT_ID`
-- [ ] A2.3 Verify `CFBundleURLTypes` uses the correct reversed client ID
-- [ ] A2.4 Enable Google provider in Supabase Auth settings
-- [ ] A2.5 Validate Sign in with Google on physical device (first sign-in + returning user)
+- [x] A2.1 Create iOS OAuth client in Google Cloud Console for `com.krsnalabs.saphan`
+- [x] A2.2 Set `SAPHAN_GOOGLE_CLIENT_ID`, `SAPHAN_GOOGLE_SERVER_CLIENT_ID`, and `SAPHAN_GOOGLE_REVERSED_CLIENT_ID`
+- [x] A2.3 Verify `CFBundleURLTypes` uses the correct reversed client ID
+- [x] A2.4 Enable Google provider in Supabase Auth settings
+- [x] A2.5 Validate Sign in with Google on physical device (first sign-in + returning user)
 
 #### B. Subscription / RevenueCat
-- [ ] B1. RevenueCat SDK configure/initialize with real API key
-- [ ] B2. Offerings fetch and paywall wiring
-- [ ] B3. Purchase flow wiring
-- [ ] B4. Restore purchases flow wiring
-- [ ] B5. Entitlement-based premium gating across app
-- [ ] B6. Sandbox validation for monthly/yearly products
+- [x] B1. RevenueCat SDK configure/initialize with real API key (app code + build var plumbing)
+- [x] B2. Offerings fetch and paywall wiring
+- [x] B3. Purchase flow wiring
+- [x] B4. Restore purchases flow wiring
+- [x] B5. Entitlement-based premium gating across app
+- [ ] B6. Sandbox validation for weekly/monthly/yearly products
+- [ ] B7. Set `SAPHAN_REVENUECAT_API_KEY` and `SAPHAN_REVENUECAT_ENTITLEMENT_ID` in CI/release configs
 
 #### C. Compliance & App Store Connect
 - [ ] C1. Subscription products configured and submitted in App Store Connect
@@ -496,9 +497,62 @@ enum Tone: String, CaseIterable {
 - [ ] D4. Keyboard extension full-access + token-sharing validation
 - [ ] D5. Release candidate signoff
 
+#### E. Paid-Only Onboarding Funnel (new)
+- [x] E1. Refactor entry routing to: `Splash -> Auth -> Onboarding -> Paywall -> Main`
+- [x] E2. Expand onboarding from 4 pages to 7-8 pages (value-first narrative)
+- [x] E3. Add hard paywall gate before app usage (no free mode)
+- [x] E4. Keep `Restore Purchases` + legal links visible on paywall
+- [x] E5. After successful purchase, require auth to link account (`Auth` immediately after purchase)
+- [ ] E6. Add funnel analytics events (`onboarding_started`, `onboarding_completed`, `paywall_viewed`, `purchase_started`, `purchase_success`, `auth_success`)
+- [ ] E7. QA all funnel paths (new user, returning subscriber, restore-on-new-device, cancel purchase)
+
+### Funnel Decision (2026-02-13)
+
+**Recommended flow for paid-only app**
+
+1. `Splash`
+2. `Auth` (Apple/Google/email first, identify account)
+3. `Long onboarding` (7-8 value-building screens)
+4. `Paywall` (weekly/monthly/yearly, yearly preselected)
+5. `Main app`
+
+**Why this is preferred for this launch**
+
+- Subscription/entitlement checks are tied to a known account immediately
+- Returning subscribers can be recognized before onboarding/paywall routing
+- Simpler support/recovery path because every session starts with explicit identity
+
+### Onboarding Content Plan (7-8 screens)
+
+1. Problem framing: language mistakes in high-stakes conversations
+2. Core promise: real-time voice translation with context
+3. Demo-like scenario: travel / partner / work
+4. Tone + context intelligence differentiator
+5. Keyboard extension value for daily messaging
+6. Trust/privacy + user control
+7. Personalization setup: target language + use case
+8. Transition screen: "Ready to unlock full access" -> paywall CTA
+
+### Paywall Requirements (hard gate)
+
+- Plans shown: `weekly`, `monthly`, `yearly`
+- Default selected: `yearly`
+- Badge: yearly savings vs monthly effective price
+- Required actions: `Restore Purchases`, `Terms`, `Privacy`
+- No `Continue as Guest` from paywall
+
+### Routing Rules (implementation)
+
+1. If user is not authenticated: show auth
+2. If authenticated and entitlement active: show main app immediately (bypass onboarding/paywall)
+3. If authenticated, entitlement inactive, onboarding incomplete: show onboarding
+4. If authenticated, entitlement inactive, onboarding complete: show paywall
+
 ### Current focus
 
-- [ ] **NOW: A1.1-A1.5 + A2.1-A2.5 external config and device validation**
+- [ ] **NOW: B6-B7 external RevenueCat/App Store Connect setup + sandbox purchase validation**
+- [ ] **NOW: E6 funnel analytics instrumentation**
+- [ ] **NEXT: E7 + D1-D3 paid-funnel QA matrix**
 
 ## Notes
 

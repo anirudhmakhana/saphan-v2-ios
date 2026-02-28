@@ -29,4 +29,5 @@ struct MainTabView: View {
     MainTabView()
         .environmentObject(AuthViewModel())
         .environmentObject(NetworkMonitor.shared)
+        .environmentObject(SubscriptionViewModel())
 }

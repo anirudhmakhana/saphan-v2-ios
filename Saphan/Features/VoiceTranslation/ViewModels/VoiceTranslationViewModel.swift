@@ -43,7 +43,7 @@ final class VoiceTranslationViewModel: ObservableObject {
     @Published var isTranslating = false
     @Published var isOutputSpeaking = false
     @Published var micTurnState: MicTurnState = .idle
-    @Published var audioOutputPreference: AudioOutputPreference = .automatic
+    @Published var audioOutputPreference: AudioOutputPreference = .speaker
     @Published var currentOutputDeviceName: String = "System Default"
     @Published var isWarmupInProgress = false
     @Published var isWarmupReady = false

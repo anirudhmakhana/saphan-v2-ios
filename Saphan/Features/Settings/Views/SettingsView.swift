@@ -3,6 +3,7 @@ import SaphanCore
 
 struct SettingsView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @EnvironmentObject private var subscriptionViewModel: SubscriptionViewModel
     @StateObject private var viewModel = SettingsViewModel()
     @State private var showingPaywall = false
 
@@ -21,6 +22,9 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showingPaywall) {
                 PaywallView()
+            }
+            .task {
+                await subscriptionViewModel.checkSubscriptionStatus()
             }
         }
     }
@@ -94,23 +98,16 @@ struct SettingsView: View {
                     Text(user.email)
                         .foregroundColor(.secondary)
                 }
-
-                if user.isGuest {
-                    Button {
-                        authViewModel.showSignUp = true
-                        HapticManager.selection()
-                    } label: {
-                        Label("Create Account", systemImage: "person.badge.plus")
-                            .foregroundColor(SaphanTheme.brandCoral)
-                    }
-                }
             }
 
             Button {
                 showingPaywall = true
                 HapticManager.selection()
             } label: {
-                Label("Upgrade to Pro", systemImage: "star.fill")
+                Label(
+                    subscriptionViewModel.isSubscribed ? "Manage Subscription" : "Upgrade to Pro",
+                    systemImage: subscriptionViewModel.isSubscribed ? "creditcard.fill" : "star.fill"
+                )
                     .foregroundColor(SaphanTheme.brandCoral)
             }
 
@@ -263,5 +260,6 @@ struct LanguagePairPickerView: View {
     NavigationStack {
         SettingsView()
             .environmentObject(AuthViewModel())
+            .environmentObject(SubscriptionViewModel())
     }
 }

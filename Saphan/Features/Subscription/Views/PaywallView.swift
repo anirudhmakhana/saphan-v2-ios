@@ -2,8 +2,23 @@ import SwiftUI
 import SaphanCore
 
 struct PaywallView: View {
-    @StateObject private var viewModel = SubscriptionViewModel()
+    enum Mode: Equatable {
+        case modal
+        case required
+    }
+
+    @EnvironmentObject private var viewModel: SubscriptionViewModel
     @Environment(\.dismiss) private var dismiss
+    let mode: Mode
+    let onAlreadySubscribedTap: (() -> Void)?
+
+    init(
+        mode: Mode = .modal,
+        onAlreadySubscribedTap: (() -> Void)? = nil
+    ) {
+        self.mode = mode
+        self.onAlreadySubscribedTap = onAlreadySubscribedTap
+    }
 
     var body: some View {
         ZStack {
@@ -14,15 +29,17 @@ struct PaywallView: View {
                 HStack {
                     Spacer()
 
-                    Button {
-                        dismiss()
-                        HapticManager.selection()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundColor(.white.opacity(0.7))
+                    if mode == .modal {
+                        Button {
+                            dismiss()
+                            HapticManager.selection()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 28))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .buttonStyle(SaphanPressableStyle(scale: 0.9))
                     }
-                    .buttonStyle(SaphanPressableStyle(scale: 0.9))
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
@@ -44,7 +61,7 @@ struct PaywallView: View {
                                 .font(.system(size: 40, weight: .bold))
                                 .foregroundColor(.white)
 
-                            Text("Unlock unlimited translation power")
+                            Text(mode == .required ? "Unlock full app access" : "Unlock unlimited translation power")
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.7))
                         }
@@ -62,15 +79,26 @@ struct PaywallView: View {
                                 .font(.headline)
                                 .foregroundColor(.white)
 
-                            ForEach(viewModel.offerings) { offering in
-                                OfferingCard(
-                                    offering: offering,
-                                    isSelected: viewModel.selectedOffering?.id == offering.id,
-                                    onSelect: {
-                                        viewModel.selectedOffering = offering
-                                        HapticManager.selection()
-                                    }
-                                )
+                            if viewModel.isRefreshing && viewModel.offerings.isEmpty {
+                                HStack(spacing: 10) {
+                                    ProgressView()
+                                        .tint(.white)
+                                    Text("Loading plans...")
+                                        .font(.subheadline)
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            } else {
+                                ForEach(viewModel.offerings) { offering in
+                                    OfferingCard(
+                                        offering: offering,
+                                        isSelected: viewModel.selectedOffering?.id == offering.id,
+                                        onSelect: {
+                                            viewModel.selectedOffering = offering
+                                            HapticManager.selection()
+                                        }
+                                    )
+                                }
                             }
                         }
                         .padding(.horizontal, 24)
@@ -95,7 +123,7 @@ struct PaywallView: View {
                                 HapticManager.impact(.soft)
                                 Task {
                                     await viewModel.purchase(offering: offering)
-                                    if viewModel.isSubscribed {
+                                    if viewModel.isSubscribed && mode == .modal {
                                         dismiss()
                                     }
                                 }
@@ -104,7 +132,7 @@ struct PaywallView: View {
                                     ProgressView()
                                         .tint(.white)
                                 } else {
-                                    Text("Subscribe Now")
+                                    Text(mode == .required ? "Start Subscription" : "Subscribe Now")
                                         .font(.headline)
                                         .fontWeight(.semibold)
                                 }
@@ -129,6 +157,21 @@ struct PaywallView: View {
                             }
                             .buttonStyle(SaphanPressableStyle(scale: 0.97))
                             .disabled(viewModel.isLoading)
+
+                            if mode == .required, let onAlreadySubscribedTap {
+                                Button {
+                                    HapticManager.selection()
+                                    onAlreadySubscribedTap()
+                                } label: {
+                                    Text("Already subscribed? Sign In")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(SaphanTheme.brandCoral)
+                                }
+                                .buttonStyle(SaphanPressableStyle(scale: 0.97))
+                                .disabled(viewModel.isLoading)
+                                .padding(.top, 4)
+                            }
                         }
                         .padding(.horizontal, 24)
 
@@ -155,6 +198,10 @@ struct PaywallView: View {
             }
         }
         .animation(SaphanMotion.quickSpring, value: viewModel.selectedOffering?.id)
+        .task {
+            await viewModel.loadOfferings()
+            await viewModel.checkSubscriptionStatus()
+        }
     }
 }
 
@@ -283,4 +330,5 @@ struct OfferingCard: View {
 
 #Preview {
     PaywallView()
+        .environmentObject(SubscriptionViewModel())
 }

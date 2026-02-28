@@ -1124,6 +1124,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.krsnalabs.saphan;
+				SAPHAN_REVENUECAT_API_KEY = test_GDloiIMuknDRSuPGRAMrQQSARKf;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -1257,6 +1258,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.krsnalabs.saphan;
+				SAPHAN_REVENUECAT_API_KEY = test_GDloiIMuknDRSuPGRAMrQQSARKf;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
